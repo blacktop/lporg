@@ -57,7 +57,7 @@ func main() {
 	items := []Item{}
 
 	// $TMPDIR../0/com.apple.dock.launchpad/db/db
-	db, err := sqlx.Connect("sqlite3", "./db")
+	db, err := sqlx.Connect("sqlite3", "./launchpad.db")
 	if err != nil {
 		log.Fatal(err)
 	}
