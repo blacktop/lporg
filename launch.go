@@ -20,8 +20,8 @@ type App struct {
 	Bookmark   []byte         `db:"bookmark"`
 }
 
-// Categorie CREATE TABLE categories (rowid INTEGER PRIMARY KEY ASC, uti VARCHAR)
-type Categorie struct {
+// Category CREATE TABLE categories (rowid INTEGER PRIMARY KEY ASC, uti VARCHAR)
+type Category struct {
 	RowID int    `db:"rowid"`
 	UTI   string `db:"uti"`
 }
@@ -43,7 +43,19 @@ type Item struct {
 	Ordering sql.NullInt64 `db:"ordering"`
 }
 
+func checkError(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func main() {
+
+	apps := []App{}
+	categories := []Category{}
+	groups := []Group{}
+	items := []Item{}
+
 	// $TMPDIR../0/com.apple.dock.launchpad/db/db
 	db, err := sqlx.Connect("sqlite3", "./db")
 	if err != nil {
@@ -51,29 +63,50 @@ func main() {
 	}
 	defer db.Close()
 
-	rows, err := db.Queryx("select * from groups")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
+	checkError(db.Select(&apps, "SELECT * FROM apps ORDER BY item_id ASC"))
+	checkError(db.Select(&categories, "SELECT * FROM categories ORDER BY rowid ASC"))
+	checkError(db.Select(&groups, "SELECT * FROM groups ORDER BY item_id ASC"))
+	checkError(db.Select(&items, "SELECT * FROM items ORDER BY rowid ASC"))
 
-	cols, err := rows.Columns()
-	fmt.Println(cols)
-	if err != nil {
-		log.Fatal(err)
+	for _, g := range apps {
+		fmt.Printf("%+v\n", g)
 	}
 
-	for rows.Next() {
-		app := Group{}
-		err = rows.StructScan(&app)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Printf("%#v\n", app)
-		// fmt.Println(itemID, title, bundleid)
+	for _, g := range categories {
+		fmt.Printf("%+v\n", g)
 	}
-	err = rows.Err()
-	if err != nil {
-		log.Fatal(err)
+
+	for _, g := range groups {
+		fmt.Printf("%+v\n", g)
 	}
+
+	for _, g := range items {
+		fmt.Printf("%+v\n", g)
+	}
+
+	// rows, err := db.Queryx("select * from groups")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer rows.Close()
+
+	// cols, err := rows.Columns()
+	// fmt.Println(cols)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// for rows.Next() {
+	// 	app := Group{}
+	// 	err = rows.StructScan(&app)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	fmt.Printf("%#v\n", app)
+	// 	// fmt.Println(itemID, title, bundleid)
+	// }
+	// err = rows.Err()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 }
