@@ -3,7 +3,8 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
@@ -69,7 +70,11 @@ func main() {
 	checkError(db.Select(&items, "SELECT * FROM items ORDER BY rowid ASC"))
 
 	for _, g := range apps {
-		fmt.Printf("%+v\n", g)
+		if g.CategoryID.Valid {
+			fmt.Printf("%+v\n", g)
+		} else {
+			log.Error("we got some bad hombres")
+		}
 	}
 
 	for _, g := range categories {
@@ -77,7 +82,11 @@ func main() {
 	}
 
 	for _, g := range groups {
-		fmt.Printf("%+v\n", g)
+		if g.Title.Valid {
+			fmt.Printf("%+v\n", g)
+		} else {
+			log.Error("we got some bad hombres")
+		}
 	}
 
 	for _, g := range items {
