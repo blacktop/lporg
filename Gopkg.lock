@@ -2,19 +2,28 @@
 
 
 [[projects]]
+  name = "github.com/jinzhu/gorm"
+  packages = [".","dialects/sqlite"]
+  revision = "5174cc5c242a728b435ea2be8a2f7f998e15429b"
+  version = "v1.0"
+
+[[projects]]
   branch = "master"
-  name = "github.com/jmoiron/sqlx"
-  packages = [
-    ".",
-    "reflectx"
-  ]
-  revision = "de8647470aafe4854c976707c431dbe1eb2822c6"
+  name = "github.com/jinzhu/inflection"
+  packages = ["."]
+  revision = "1c35d901db3da928c72a72d8458480cc9ade058f"
 
 [[projects]]
   name = "github.com/mattn/go-sqlite3"
   packages = ["."]
   revision = "ed69081a91fd053f17672236b0dd52ba7485e1a3"
   version = "v1.4.0"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
 
 [[projects]]
   name = "github.com/sirupsen/logrus"
@@ -37,15 +46,12 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = [
-    "unix",
-    "windows"
-  ]
+  packages = ["unix","windows"]
   revision = "83801418e1b59fb1880e363299581ee543af32ca"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c59d545454b4358c2a93f5f1676db7e2334505c0ecac5a47a2e5e5fc78908db8"
+  inputs-digest = "dcdd9b8c3568d4a27a5b3d1d8fedf1cdf8a706da970c6eb77fc92404f56e3803"
   solver-name = "gps-cdcl"
   solver-version = 1
