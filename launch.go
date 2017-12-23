@@ -86,7 +86,7 @@ func main() {
 
 	// db.LogMode(true)
 
-	if err := db.First(&item, 144).Error; err != nil {
+	if err := db.First(&item, 122).Error; err != nil {
 		log.Error(err)
 	}
 
