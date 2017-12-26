@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/BurntSushi/toml"
+  packages = ["."]
+  revision = "b26d9c308763d68093482582cea63d69be07a0f0"
+  version = "v0.3.0"
+
+[[projects]]
   name = "github.com/jinzhu/gorm"
   packages = [".","dialects/sqlite"]
   revision = "5174cc5c242a728b435ea2be8a2f7f998e15429b"
@@ -49,9 +55,16 @@
   packages = ["unix","windows"]
   revision = "83801418e1b59fb1880e363299581ee543af32ca"
 
+[[projects]]
+  branch = "v2"
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  revision = "287cf08546ab5e7e37d55a84f7ed3fd1db036de5"
+  source = "github.com/go-yaml/yaml"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "81849c244636cf30776f34f2e1c4723f3c1c0b2718cf682d8f1607bdf0064e1f"
+  inputs-digest = "f14f851ae7359d65d275f56de7ae56bb656dde4eed37f5c09d9a5f592aa522a8"
   solver-name = "gps-cdcl"
   solver-version = 1

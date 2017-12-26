@@ -1,14 +1,15 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/BurntSushi/toml"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 // App CREATE TABLE apps (item_id INTEGER PRIMARY KEY, title VARCHAR, bundleid VARCHAR, storeid VARCHAR,category_id INTEGER, moddate REAL, bookmark BLOB)
@@ -51,26 +52,10 @@ type Item struct {
 	Ordering int   `gorm:"column:ordering"`
 }
 
-type AppGroups struct {
-	Groups map[string][]App
-}
-
 func checkError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-func writeTomlFile(filename string, data interface{}) error {
-	f, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	err = toml.NewEncoder(f).Encode(data)
-
-	return err
 }
 
 func init() { log.SetLevel(log.DebugLevel) }
@@ -79,7 +64,7 @@ func main() {
 
 	var items []Item
 	var group Group
-	appGroups := make(map[string][]App)
+	appGroups := make(map[string][]string)
 
 	// Older macOS
 	// $HOME/Library/Application\ Support/Dock/*.db
@@ -114,14 +99,14 @@ func main() {
 		group = Group{}
 		db.Model(&item).Related(&item.App)
 		db.Model(&item.App).Related(&item.App.Category)
-		log.Debugln("item.ParentID-1 = ", item.ParentID-1)
+		log.Debugf("App: %s, item.ParentID=%d\n", item.App.Title, item.ParentID-1)
 		if err := db.First(&group, item.ParentID-1).Error; err != nil {
 			log.Error(err)
 		}
 		item.Group = group
 		log.Debugf("%+v\n", group)
 		if len(group.Title) > 0 {
-			appGroups[group.Title] = append(appGroups[group.Title], item.App)
+			appGroups[group.Title] = append(appGroups[group.Title], item.App.Title)
 		}
 	}
 
@@ -139,5 +124,8 @@ func main() {
 	// }
 	// g := make(map[string][]Group)
 	// g["Groups"] = groups
-	checkError(writeTomlFile("./groups.toml", appGroups))
+	d, err := yaml.Marshal(&appGroups)
+	checkError(err)
+	checkError(ioutil.WriteFile("launchpad.yaml", d, 0644))
+	// checkError(writeTomlFile("./groups.toml", appGroups))
 }

@@ -42,5 +42,6 @@
   version = "0.8.0"
 
 [[constraint]]
-  name = "github.com/BurntSushi/toml"
-  version = "0.3.0"
+  name = "gopkg.in/yaml.v2"
+  branch = "v2"
+  source = "github.com/go-yaml/yaml"
