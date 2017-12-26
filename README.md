@@ -32,6 +32,8 @@ Run 'lporg COMMAND --help' for more information on a command.
 
 ### Example Output
 
+YAML
+
 ```yaml
 Other:
 - Automator
@@ -68,6 +70,8 @@ Productivity:
 - App Store
 - Pages
 ```
+
+JSON
 
 ```json
 {
@@ -123,3 +127,11 @@ Productivity:
 
 - [x] swith to Apex log
 - [ ] figure out how to write to DB and not just read :disappointed:
+
+## Issues
+
+Find a bug? Want more features? Find something missing in the documentation? Let me know! Please don't hesitate to [file an issue](https://github.com/blacktop/lporg/issues/new)
+
+## License
+
+MIT Copyright (c) 2017-2018 **blacktop**
