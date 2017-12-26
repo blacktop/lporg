@@ -6,8 +6,6 @@
 
 ---
 
-> **NOTE:** Tested on High Sierra
-
 ## Getting Started
 
 ```sh
@@ -27,6 +25,8 @@ Commands:
 
 Run 'lporg COMMAND --help' for more information on a command.
 ```
+
+> **NOTE:** Tested on High Sierra
 
 ```
                                           '.:/+ooossoo+/:-'
