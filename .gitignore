@@ -19,3 +19,5 @@ groups.toml
 launchpad.toml
 launchpad-organizer
 launchpad.yaml
+
+dist/
