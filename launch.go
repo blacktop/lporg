@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -199,6 +200,7 @@ func main() {
 
 			// user supplied launchpad config YAML
 			log.Infoln("IMPLIMENT HERE <=================")
+			fmt.Println(porg)
 		} else {
 			cli.ShowAppHelp(c)
 		}
