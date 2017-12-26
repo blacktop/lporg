@@ -1,4 +1,4 @@
-# launchpad-organizer
+# launchpad-organizer [WIP] :construction:
 
 Organize Your macOS Launchpad Apps
 
