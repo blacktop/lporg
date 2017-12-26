@@ -52,7 +52,7 @@ type Group struct {
 	Title      string `gorm:"column:title"`
 }
 
-// Item CREATE TABLE items (rowid INTEGER PRIMARY KEY ASC, uuid VARCHAR, flags INTEGER, type INTEGER, parent_id INTEGER NOT NULL, ordering INTEGER)
+// Item - CREATE TABLE items (rowid INTEGER PRIMARY KEY ASC, uuid VARCHAR, flags INTEGER, type INTEGER, parent_id INTEGER NOT NULL, ordering INTEGER)
 type Item struct {
 	RowID int `gorm:"column:rowid;primary_key"`
 	App   App
@@ -63,6 +63,17 @@ type Item struct {
 	Group    Group `gorm:"ForeignKey:ParentID"`
 	ParentID int   `gorm:"not null;column:parent_id"`
 	Ordering int   `gorm:"column:ordering"`
+}
+
+// DBInfo - CREATE TABLE dbinfo (key VARCHAR, value VARCHAR)
+type DBInfo struct {
+	Key   string
+	Value string
+}
+
+// set DBInfo's table name to be `dbinfo`
+func (DBInfo) TableName() string {
+	return "dbinfo"
 }
 
 func checkError(err error) {
@@ -117,10 +128,30 @@ func addAppToGroup(db *gorm.DB, appName, groupName string) error {
 
 // CREATE TRIGGER update_item_parent AFTER UPDATE OF parent_id ON items WHEN 0 == (SELECT value FROM dbinfo WHERE key='ignore_items_update_triggers') BEGIN UPDATE dbinfo SET value=1 WHERE key='ignore_items_update_triggers'; UPDATE items SET ordering = (SELECT ifnull(MAX(ordering),0)+1 FROM items WHERE parent_id=new.parent_id AND ROWID!=old.rowid) WHERE ROWID=old.rowid; UPDATE items SET ordering = ordering - 1 WHERE parent_id = old.parent_id and ordering > old.ordering; UPDATE dbinfo SET value=0 WHERE key='ignore_items_update_triggers'; END
 func updateItemGroup(db *gorm.DB, groupID int, item *Item) error {
-	item.ParentID = groupID
+	var dbinfo DBInfo
+
+	if err := db.Where("key = ?", "ignore_items_update_triggers").First(&dbinfo).Error; err != nil {
+		log.WithError(err).Error("find dbinfo failed")
+	}
+	err := db.Model(&item).Update("key", "1").Error
+	if err != nil {
+		log.WithError(err).Error("counld not update ignore_items_update_triggers to 1")
+	}
+
+	// item.ParentID = groupID
 	// item.Ordering = 0
-	return db.Save(&item).Error
-	// return db.Model(&item).Update("parent_id", groupID).Error
+	// return db.Save(&item).Error
+	err = db.Model(&item).Update("parent_id", groupID).Error
+	if err != nil {
+		log.WithError(err).Error("counld not update item's group")
+	}
+
+	err = db.Model(&item).Update("key", "0").Error
+	if err != nil {
+		log.WithError(err).Error("counld not update ignore_items_update_triggers to 0")
+	}
+
+	return nil
 }
 
 // CmdDefaultOrg will organize your launchpad by the app default categories
@@ -162,11 +193,11 @@ func CmdDefaultOrg(verbose bool) error {
 		// db.LogMode(true)
 	}
 
-	// grp, err := createNewGroup(db, "Porg")
-	// checkError(err)
-	// checkError(addAppToGroup(db, "Atom", grp.Title))
-	// checkError(addAppToGroup(db, "Brave", grp.Title))
-	// checkError(addAppToGroup(db, "iTerm", grp.Title))
+	grp, err := createNewGroup(db, "Porg")
+	checkError(err)
+	checkError(addAppToGroup(db, "Atom", grp.Title))
+	checkError(addAppToGroup(db, "Brave", grp.Title))
+	checkError(addAppToGroup(db, "iTerm", grp.Title))
 
 	if err := db.Where("type = ?", "4").Find(&items).Error; err != nil {
 		log.WithError(err).Error("find item of type=4 failed")
