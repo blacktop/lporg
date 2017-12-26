@@ -45,3 +45,7 @@
   name = "gopkg.in/yaml.v2"
   branch = "v2"
   source = "github.com/go-yaml/yaml"
+
+[[constraint]]
+  name = "github.com/urfave/cli"
+  version = "1.20.0"

@@ -1,0 +1,25 @@
+
+builds:
+  -
+    binary: lporg
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    ldflags: -s -w -X main.Version={{.Version}} -X main.BuildTime={{.Date}}
+
+archive:
+  format: tar.gz
+  replacements:
+    amd64: amd64
+    darwin: macOS
+
+brew:
+  github:
+    owner: blacktop
+    name: homebrew-tap
+  folder: Formula
+  homepage: "https://github.com/blacktop/launchpad-organizer"
+  description: "Organize Your macOS Launchpad Apps."
+  test: |
+    system "#{bin}/lporg --version"

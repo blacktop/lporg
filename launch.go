@@ -4,12 +4,22 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 	"gopkg.in/yaml.v2"
+)
+
+var (
+	// ctx *log.Entry
+	// Version stores the plugin's version
+	Version string
+	// BuildTime stores the plugin's build time
+	BuildTime string
 )
 
 // App CREATE TABLE apps (item_id INTEGER PRIMARY KEY, title VARCHAR, bundleid VARCHAR, storeid VARCHAR,category_id INTEGER, moddate REAL, bookmark BLOB)
@@ -58,9 +68,12 @@ func checkError(err error) {
 	}
 }
 
-func init() { log.SetLevel(log.DebugLevel) }
+// CmdDefaultOrg will organize your launchpad by the app default categories
+func CmdDefaultOrg(verbose bool) error {
 
-func main() {
+	if verbose {
+		log.SetLevel(log.DebugLevel)
+	}
 
 	var items []Item
 	var group Group
@@ -76,7 +89,7 @@ func main() {
 	tmpDir := os.Getenv("TMPDIR")
 	launchDB, err := filepath.Glob(tmpDir + "../0/com.apple.dock.launchpad/db/db")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	if len(launchDB) == 0 {
 		log.Fatal(errors.New("launchpad DB not found"))
@@ -85,11 +98,13 @@ func main() {
 	// open launchpad database
 	db, err := gorm.Open("sqlite3", launchDB[0])
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer db.Close()
 
-	// db.LogMode(true)
+	if verbose {
+		db.LogMode(true)
+	}
 
 	if err := db.Where("type = ?", "4").Find(&items).Error; err != nil {
 		log.Error(err)
@@ -101,7 +116,7 @@ func main() {
 		db.Model(&item.App).Related(&item.App.Category)
 		log.Debugf("App: %s, item.ParentID=%d\n", item.App.Title, item.ParentID-1)
 		if err := db.First(&group, item.ParentID-1).Error; err != nil {
-			log.Error(err)
+			return err
 		}
 		item.Group = group
 		log.Debugf("%+v\n", group)
@@ -125,7 +140,73 @@ func main() {
 	// g := make(map[string][]Group)
 	// g["Groups"] = groups
 	d, err := yaml.Marshal(&appGroups)
-	checkError(err)
-	checkError(ioutil.WriteFile("launchpad.yaml", d, 0644))
-	// checkError(writeTomlFile("./groups.toml", appGroups))
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile("launchpad.yaml", d, 0644)
+	return err
+}
+
+var appHelpTemplate = `Usage: {{.Name}} {{if .Flags}}[OPTIONS] {{end}}COMMAND [arg...]
+{{.Usage}}
+Version: {{.Version}}{{if or .Author .Email}}
+Author:{{if .Author}} {{.Author}}{{if .Email}} - <{{.Email}}>{{end}}{{else}}
+  {{.Email}}{{end}}{{end}}
+{{if .Flags}}
+Options:
+  {{range .Flags}}{{.}}
+  {{end}}{{end}}
+Commands:
+  {{range .Commands}}{{.Name}}{{with .ShortName}}, {{.}}{{end}}{{ "\t" }}{{.Usage}}
+  {{end}}
+Run '{{.Name}} COMMAND --help' for more information on a command.
+`
+
+func main() {
+
+	cli.AppHelpTemplate = appHelpTemplate
+	app := cli.NewApp()
+
+	app.Name = "lporg"
+	app.Author = "blacktop"
+	app.Email = "https://github.com/blacktop"
+	app.Version = Version + ", BuildTime: " + BuildTime
+	app.Compiled, _ = time.Parse("20060102", BuildTime)
+	app.Usage = "Organize Your Launchpad"
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "verbose, V",
+			Usage: "verbose output",
+		},
+	}
+	app.Commands = []cli.Command{
+		{
+			Name:  "default",
+			Usage: "Organize by Categories",
+			Action: func(c *cli.Context) error {
+				return CmdDefaultOrg(c.Bool("verbose"))
+			},
+		},
+	}
+	app.Action = func(c *cli.Context) error {
+
+		if c.Bool("verbose") {
+			log.SetLevel(log.DebugLevel)
+		}
+
+		if c.Args().Present() {
+
+			// user supplied launchpad config YAML
+			log.Infoln("IMPLIMENT HERE <=================")
+		} else {
+			cli.ShowAppHelp(c)
+		}
+		return nil
+	}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 }
