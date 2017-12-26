@@ -17,6 +17,7 @@ import (
 
 var (
 	// ctx *log.Entry
+
 	// Version stores the plugin's version
 	Version string
 	// BuildTime stores the plugin's build time
@@ -59,7 +60,7 @@ type Item struct {
 	Type  int    `gorm:"column:type"`
 	// ParentID Group         `db:"parent_id"`
 	Group    Group `gorm:"ForeignKey:ParentID"`
-	ParentID int   `gorm:"not null;unique;column:parent_id"`
+	ParentID int   `gorm:"not null;column:parent_id"`
 	Ordering int   `gorm:"column:ordering"`
 }
 
@@ -67,6 +68,58 @@ func checkError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func createNewGroup(db *gorm.DB, title string) (Group, error) {
+
+	group := Group{Title: title}
+
+	success := db.NewRecord(group) // => returns `true` as primary key is blank
+	log.WithFields(log.Fields{"success": success}).Debug("create new group record")
+
+	err := db.Create(&group).Error
+	if err != nil {
+		return group, errors.Wrap(err, "create new entry failed")
+	}
+
+	emptyGroup := Group{}
+	success = db.NewRecord(emptyGroup)
+	log.WithFields(log.Fields{"success": success}).Debug("create new empty group record")
+
+	err = db.Create(&emptyGroup).Error
+	if err != nil {
+		return group, errors.Wrap(err, "create new EMPTY entry failed")
+	}
+
+	return group, err
+}
+
+func addAppToGroup(db *gorm.DB, appName, groupName string) error {
+
+	var (
+		app   App
+		item  Item
+		group Group
+	)
+
+	if err := db.Where("title = ?", appName).First(&app).Error; err != nil {
+		log.Error(err)
+	}
+	if err := db.Where("rowid = ?", app.ItemID).First(&item).Error; err != nil {
+		log.Error(err)
+	}
+	if err := db.Where("title = ?", groupName).First(&group).Error; err != nil {
+		log.Error(err)
+	}
+	return updateItemGroup(db, group.ID+1, &item)
+}
+
+// CREATE TRIGGER update_item_parent AFTER UPDATE OF parent_id ON items WHEN 0 == (SELECT value FROM dbinfo WHERE key='ignore_items_update_triggers') BEGIN UPDATE dbinfo SET value=1 WHERE key='ignore_items_update_triggers'; UPDATE items SET ordering = (SELECT ifnull(MAX(ordering),0)+1 FROM items WHERE parent_id=new.parent_id AND ROWID!=old.rowid) WHERE ROWID=old.rowid; UPDATE items SET ordering = ordering - 1 WHERE parent_id = old.parent_id and ordering > old.ordering; UPDATE dbinfo SET value=0 WHERE key='ignore_items_update_triggers'; END
+func updateItemGroup(db *gorm.DB, groupID int, item *Item) error {
+	item.ParentID = groupID
+	// item.Ordering = 0
+	return db.Save(&item).Error
+	// return db.Model(&item).Update("parent_id", groupID).Error
 }
 
 // CmdDefaultOrg will organize your launchpad by the app default categories
@@ -107,6 +160,12 @@ func CmdDefaultOrg(verbose bool) error {
 		db.LogMode(true)
 	}
 
+	// grp, err := createNewGroup(db, "Porg")
+	// checkError(err)
+	// checkError(addAppToGroup(db, "Atom", grp.Title))
+	// checkError(addAppToGroup(db, "Brave", grp.Title))
+	// checkError(addAppToGroup(db, "iTerm", grp.Title))
+
 	if err := db.Where("type = ?", "4").Find(&items).Error; err != nil {
 		log.Error(err)
 	}
@@ -117,7 +176,8 @@ func CmdDefaultOrg(verbose bool) error {
 		db.Model(&item.App).Related(&item.App.Category)
 		log.Debugf("App: %s, item.ParentID=%d\n", item.App.Title, item.ParentID-1)
 		if err := db.First(&group, item.ParentID-1).Error; err != nil {
-			return err
+			log.WithFields(log.Fields{"ParentID": item.ParentID - 1}).Debug(errors.Wrap(err, "find group with item.ParentID-1 failed"))
+			continue
 		}
 		item.Group = group
 		log.Debugf("%+v\n", group)
@@ -197,9 +257,8 @@ func main() {
 		}
 
 		if c.Args().Present() {
-
 			// user supplied launchpad config YAML
-			log.Infoln("IMPLIMENT HERE <=================")
+			log.Infoln("IMPLIMENT LOADING FROM CONFIG YAML HERE <=================")
 			fmt.Println(porg)
 		} else {
 			cli.ShowAppHelp(c)

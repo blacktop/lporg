@@ -6,6 +6,8 @@
 
 ---
 
+> **NOTE:** Tested on High Sierra
+
 ## Getting Started
 
 ```sh
@@ -130,3 +132,8 @@ Run 'lporg COMMAND --help' for more information on a command.
   }
 }
 ```
+
+## TODO
+
+* [ ] swith to Apex log
+* [ ] figure out how to write to DB and not just read :disappointed:
