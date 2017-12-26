@@ -15,3 +15,5 @@
 
 *.db*
 debug
+groups.toml
+launchpad.toml
