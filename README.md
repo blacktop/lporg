@@ -1,4 +1,6 @@
-# launchpad-organizer :construction: [WIP]
+![logo](https://github.com/blacktop/lporg/raw/master/porg.jpeg)
+
+# lporg :construction: [WIP]
 
 [![Circle CI](https://circleci.com/gh/blacktop/launchpad-organizer.png?style=shield)](https://circleci.com/gh/blacktop/launchpad-organizer) [![GitHub release](https://img.shields.io/github/release/blacktop/launchpad-organizer.svg)](https://github.com/https://github.com/blacktop/launchpad-organizer/releases/releases) [![License](http://img.shields.io/:license-mit-blue.svg)](http://doge.mit-license.org)
 
