@@ -7,21 +7,22 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/apex/log"
+	clihander "github.com/apex/log/handlers/cli"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"gopkg.in/yaml.v2"
 )
 
 var (
-	// ctx *log.Entry
-
 	// Version stores the plugin's version
 	Version string
 	// BuildTime stores the plugin's build time
 	BuildTime string
+	// for log output
+	bold = "\033[1m%s\033[0m"
 )
 
 // App CREATE TABLE apps (item_id INTEGER PRIMARY KEY, title VARCHAR, bundleid VARCHAR, storeid VARCHAR,category_id INTEGER, moddate REAL, bookmark BLOB)
@@ -66,7 +67,7 @@ type Item struct {
 
 func checkError(err error) {
 	if err != nil {
-		log.Fatal(err)
+		log.WithError(err).Fatal("failed")
 	}
 }
 
@@ -103,13 +104,13 @@ func addAppToGroup(db *gorm.DB, appName, groupName string) error {
 	)
 
 	if err := db.Where("title = ?", appName).First(&app).Error; err != nil {
-		log.Error(err)
+		log.WithError(err).Error("find app failed")
 	}
 	if err := db.Where("rowid = ?", app.ItemID).First(&item).Error; err != nil {
-		log.Error(err)
+		log.WithError(err).Error("find item failed")
 	}
 	if err := db.Where("title = ?", groupName).First(&group).Error; err != nil {
-		log.Error(err)
+		log.WithError(err).Error("find group failed")
 	}
 	return updateItemGroup(db, group.ID+1, &item)
 }
@@ -125,6 +126,7 @@ func updateItemGroup(db *gorm.DB, groupID int, item *Item) error {
 // CmdDefaultOrg will organize your launchpad by the app default categories
 func CmdDefaultOrg(verbose bool) error {
 
+	log.Infof(bold, "PARSE LAUCHPAD DATABASE")
 	if verbose {
 		log.SetLevel(log.DebugLevel)
 	}
@@ -146,9 +148,9 @@ func CmdDefaultOrg(verbose bool) error {
 		return err
 	}
 	if len(launchDB) == 0 {
-		log.Fatal(errors.New("launchpad DB not found"))
+		log.Fatal(errors.New("launchpad DB not found").Error())
 	}
-	log.Infoln("Found Launchpad DB: ", launchDB[0])
+	log.WithFields(log.Fields{"database": launchDB[0]}).Info("found launchpad database")
 	// open launchpad database
 	db, err := gorm.Open("sqlite3", launchDB[0])
 	if err != nil {
@@ -157,7 +159,7 @@ func CmdDefaultOrg(verbose bool) error {
 	defer db.Close()
 
 	if verbose {
-		db.LogMode(true)
+		// db.LogMode(true)
 	}
 
 	// grp, err := createNewGroup(db, "Porg")
@@ -167,20 +169,27 @@ func CmdDefaultOrg(verbose bool) error {
 	// checkError(addAppToGroup(db, "iTerm", grp.Title))
 
 	if err := db.Where("type = ?", "4").Find(&items).Error; err != nil {
-		log.Error(err)
+		log.WithError(err).Error("find item of type=4 failed")
 	}
 
 	for _, item := range items {
 		group = Group{}
 		db.Model(&item).Related(&item.App)
 		db.Model(&item.App).Related(&item.App.Category)
-		log.Debugf("App: %s, item.ParentID=%d\n", item.App.Title, item.ParentID-1)
+		log.WithFields(log.Fields{
+			"app_id":    item.App.ItemID,
+			"app_name":  item.App.Title,
+			"parent_id": item.ParentID - 1,
+		}).Debug("parsing item")
 		if err := db.First(&group, item.ParentID-1).Error; err != nil {
-			log.WithFields(log.Fields{"ParentID": item.ParentID - 1}).Debug(errors.Wrap(err, "find group with item.ParentID-1 failed"))
+			log.WithFields(log.Fields{"ParentID": item.ParentID - 1}).Debug(errors.Wrap(err, "find group with item.ParentID-1 failed").Error())
 			continue
 		}
+		log.WithFields(log.Fields{
+			"group_id":   group.ID,
+			"group_name": group.Title,
+		}).Debug("parsing group")
 		item.Group = group
-		log.Debugf("%+v\n", group)
 		if len(group.Title) > 0 {
 			appGroups[group.Title] = append(appGroups[group.Title], item.App.Title)
 		}
@@ -206,7 +215,14 @@ func CmdDefaultOrg(verbose bool) error {
 	}
 
 	err = ioutil.WriteFile("launchpad.yaml", d, 0644)
+	if err == nil {
+		log.Infof(bold, "successfully wrote launchpad.yaml")
+	}
 	return err
+}
+
+func init() {
+	log.SetHandler(clihander.Default)
 }
 
 var appHelpTemplate = `Usage: {{.Name}} {{if .Flags}}[OPTIONS] {{end}}COMMAND [arg...]
@@ -246,7 +262,7 @@ func main() {
 			Name:  "default",
 			Usage: "Organize by Categories",
 			Action: func(c *cli.Context) error {
-				return CmdDefaultOrg(c.Bool("verbose"))
+				return CmdDefaultOrg(c.GlobalBool("verbose"))
 			},
 		},
 	}
@@ -258,7 +274,7 @@ func main() {
 
 		if c.Args().Present() {
 			// user supplied launchpad config YAML
-			log.Infoln("IMPLIMENT LOADING FROM CONFIG YAML HERE <=================")
+			log.Info("IMPLIMENT LOADING FROM CONFIG YAML HERE <=================")
 			fmt.Println(porg)
 		} else {
 			cli.ShowAppHelp(c)
@@ -266,8 +282,7 @@ func main() {
 		return nil
 	}
 
-	err := app.Run(os.Args)
-	if err != nil {
-		log.Fatal(err.Error())
+	if err := app.Run(os.Args); err != nil {
+		log.WithError(err).Fatal("failed")
 	}
 }
