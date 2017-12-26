@@ -6,8 +6,27 @@
 
 ---
 
+## Getting Started
+
+```sh
+Usage: lporg [OPTIONS] COMMAND [arg...]
+Organize Your Launchpad
+Version: SNAPSHOT-06629a760be0c6881c7015e6c5a5241df4e3c812, BuildTime: 2017-12-26T19:40:06Z
+Author: blacktop - <https://github.com/blacktop>
+
+Options:
+  --verbose, -V  verbose output
+  --help, -h     show help
+  --version, -v  print the version
+
+Commands:
+  default  Organize by Categories
+  help     Shows a list of commands or help for one command
+
+Run 'lporg COMMAND --help' for more information on a command.
 ```
 
+```
                                           '.:/+ooossoo+/:-'
                                      ':+ydNMMMMMMMMMMMMMMMNmyo:'
                                    '.--.''.:ohNMMMMMMMMNho:.''..'
@@ -60,7 +79,6 @@
                             ':yNh-                                  -hh:     .:-'
                                ':o/'                              '/+.
                                    '                              '
-
 ```
 
 ```json
