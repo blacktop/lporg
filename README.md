@@ -6,7 +6,7 @@
 
 > Organize Your macOS Launchpad Apps
 
----
+--------------------------------------------------------------------------------
 
 ## Getting Started
 
@@ -30,59 +30,43 @@ Run 'lporg COMMAND --help' for more information on a command.
 
 > **NOTE:** Tested on High Sierra
 
-```
-                                          '.:/+ooossoo+/:-'
-                                     ':+ydNMMMMMMMMMMMMMMMNmyo:'
-                                   '.--.''.:ohNMMMMMMMMNho:.''..'
-                                        -o+.  ':sNMMms-'  .--
-                                 '+o     .mNo    '::'   :dNh'    '+-
-                                :mMo      dMM-         .NMMs      hNs
-                               -NMMNs:--/hMMM+         .MMMNo-''-sMMMs
-                          -'   sMMMMMMNNMMMMM:          hMMMMNNNNMMMMN
-                         -y    /MMMMMMMMMMMNs           .mMMMMMMMMMMMd     :
-                        .mN.    oNMMMMMMMms-             .yNMMMMMMMNy.    -N:
-                        hMMm+'   ./syys+-'    -//   ':/-   ./syyys/.    'oNMm'
-                       /MMMMMms:.              '.    '''             ./ymMMMMs
-                       mMMMMMMMMNo                 '               'sNMMMMMMMN.
-                      -MMMMMMMMN+'             :shmmmh+.            'oNMMMMMMMo
-                      /MMMMMMMd-             :dds+///sdm/             :mMMMMMMm
-                      sMMMMMMd.             :m+'      ':hs'            -mMMMMMM+
-                    .hMMMMMMM-             :h:'         'oh.            /MMMMMMN/
-                   /mMMMMMMMN'           ./+' .://:::::.  /d/           .MMMMMMMN/
-                 'sMMMMMMMMMM/       '.-:-'     '....'     .so-'        oMMMMMMMMN:
-                .hMMMMMMMMMMMNs-'     ''                     '--     '-yNMMMMMMMMMN-
-               -dMMMMMMMMMMMMMMNs'                                  'yNMMMMMMMMMMMMm.
-              -mMMMMMMMMMMMMMMNo'                                    'sMMMMMMMMMMMMMd'
-             :NMMMMMMMMMMMMMMm:                                        /NMMMMMMMMMMMMy
-            -NMMMMMMMMMMMMMMd.                                        ' -mMMMMMMMMMMMMo
-           .mMMMMMMMMMMMMMMd-/o'                                      .o::mMMMMMMMMMMMN/
-          'dMMMMMMMMMMMMMMMhmm.                                        -mdhMMMMMMMMMMMMm.
-          yMMMMMMMMMMMMMMMMMN-                                          :NMMMMMMMMMMMMMMh
-         /MMMMMMMMMMMMMMMMMN:                                            +MMMMMMMMMMMMMMM+
-        'mMMMMMMMMMMMMMMMMMo                                              sMMMMMMMMMMMMMMN.
-        oMMMMMMMMMMMMMMMMMh                                               'dMMMMMMMMMMMMMMy
-       'mMMMMMMMMMMMMMMMMN.                                                :MMMMMMMMMMMMMMM-
-       :MMMMMMMMMMMMMMMMMo                                                  yMMMMMMMMMMMMMMy
-       sMMMMMMMMMMMMMMMMN'                                                  -MMMMMMMMMMMMMMN'
-       dMMMMMMMMMMMMMMMMh                                                    mMMMMMMMMMMMMMM-
-       mMMMMMMMMMMMMMMMMo                                                    yMMMMMMMMMMMMMM-
-       mMMMMMMMMMMMMMMMMo                                                    sMMMMMMMMMMMMMM.
-       hMMMMMMMMMMMMMMMMs                                                    hMMMMMMMMMMMMMN
-       oMMMMMMMMMMMMMMMMy                                                    dMMMMMMMMMMMMMy
-       .MMMMMMMMMMMMMMMMd                                                    NMMMMMMMMMMMMM-
-        yMMMMMMMMMMMMMMMM'                                                  .MMMMMMMMMMMMMh
-        .NMMMMMMMMMMMMMMM/                                                  oMMMMMMMMMMMMN-
-         :NMMMMMMMMMMMMMMh                                                  mMMMMMMMMMMMMo
-          /NMMMMMMMMMMMMMM-                                                /MMMMMMMMMMMMd'
-           :NMMMMMMMMMMMMMh                                               'mMMMMMMMMMMMm.
-            .hMMMMMMMMMMMMM/                                              oMMMMMMMMMMMN-
-              +mMMMMMMMMMMMN-                                            :MMMMMMMMMMMm-
-               'oNMMMMMMMMMMm.                                          -NMMMMMMMMMMd-
-                 .omNmh+:hNMMm-                                        :NNsmMMMMMMMy'
-                   '.     -smMN+                                     'oNh- 'sNMMNh:
-                            ':yNh-                                  -hh:     .:-'
-                               ':o/'                              '/+.
-                                   '                              '
+### Example Output
+
+```yaml
+Other:
+- Automator
+- Chess
+- DVD Player
+- Font Book
+- Image Capture
+- QuickTime Player
+- Stickies
+- TextEdit
+- Time Machine
+- Activity Monitor
+- AirPort Utility
+- Audio MIDI Setup
+- Bluetooth File Exchange
+- Boot Camp Assistant
+- ColorSync Utility
+- Console
+- Digital Color Meter
+- Disk Utility
+- Grab
+- Grapher
+- Keychain Access
+- LCC Connection Utility
+- Logitech Unifying Software
+- Migration Assistant
+- Script Editor
+- System Information
+- Terminal
+- VoiceOver Utility
+- XQuartz
+
+Productivity:
+- App Store
+- Pages
 ```
 
 ```json
@@ -137,5 +121,5 @@ Run 'lporg COMMAND --help' for more information on a command.
 
 ## TODO
 
-* [x] swith to Apex log
-* [ ] figure out how to write to DB and not just read :disappointed:
+- [x] swith to Apex log
+- [ ] figure out how to write to DB and not just read :disappointed:
