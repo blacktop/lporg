@@ -175,6 +175,7 @@ func CmdDefaultOrg(verbose bool) error {
 	// find launchpad database
 	tmpDir := os.Getenv("TMPDIR")
 	launchDB, err := filepath.Glob(tmpDir + "../0/com.apple.dock.launchpad/db/db")
+	launchDB, err = filepath.Glob("./launchpad.db")
 	if err != nil {
 		return err
 	}

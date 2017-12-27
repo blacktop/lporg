@@ -1,0 +1,41 @@
+pages:
+  -
+    Other:
+      - Automator
+      - Chess
+      - DVD Player
+      - Font Book
+      - Image Capture
+      - QuickTime Player
+      - Stickies
+      - TextEdit
+      - Time Machine
+      - Activity Monitor
+      - AirPort Utility
+      - Audio MIDI Setup
+      - Bluetooth File Exchange
+      - Boot Camp Assistant
+      - ColorSync Utility
+      - Console
+      - Digital Color Meter
+      - Disk Utility
+      - Grab
+      - Grapher
+      - Keychain Access
+      - LCC Connection Utility
+      - Logitech Unifying Software
+      - Migration Assistant
+      - Script Editor
+      - System Information
+      - Terminal
+      - VoiceOver Utility
+      - XQuartz
+    Porg:
+      - Atom
+      - Brave
+      - iTerm
+  -
+    Other2:
+      - Atom
+      - Brave
+      - iTerm
