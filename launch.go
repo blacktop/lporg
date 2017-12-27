@@ -258,7 +258,9 @@ func init() {
 }
 
 var appHelpTemplate = `Usage: {{.Name}} {{if .Flags}}[OPTIONS] {{end}}COMMAND [arg...]
+
 {{.Usage}}
+
 Version: {{.Version}}{{if or .Author .Email}}
 Author:{{if .Author}} {{.Author}}{{if .Email}} - <{{.Email}}>{{end}}{{else}}
   {{.Email}}{{end}}{{end}}
@@ -297,18 +299,32 @@ func main() {
 				return CmdDefaultOrg(c.GlobalBool("verbose"))
 			},
 		},
+		{
+			Name:  "save",
+			Usage: "Save Current Launchpad App Config",
+			Action: func(c *cli.Context) error {
+				log.Info("IMPLIMENT SAVING TO CONFIG YAML HERE <=================")
+				return nil
+			},
+		},
+		{
+			Name:  "load",
+			Usage: "Load Launchpad App Config From File",
+			Action: func(c *cli.Context) error {
+				if c.Args().Present() {
+					// user supplied launchpad config YAML
+					log.Info("IMPLIMENT LOADING FROM CONFIG YAML HERE <=================")
+					fmt.Println(porg)
+				} else {
+					cli.ShowAppHelp(c)
+				}
+				return nil
+			},
+		},
 	}
 	app.Action = func(c *cli.Context) error {
 
-		if c.Bool("verbose") {
-			log.SetLevel(log.DebugLevel)
-		}
-
-		if c.Args().Present() {
-			// user supplied launchpad config YAML
-			log.Info("IMPLIMENT LOADING FROM CONFIG YAML HERE <=================")
-			fmt.Println(porg)
-		} else {
+		if !c.Args().Present() {
 			cli.ShowAppHelp(c)
 		}
 		return nil

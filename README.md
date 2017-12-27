@@ -12,8 +12,10 @@
 
 ```sh
 Usage: lporg [OPTIONS] COMMAND [arg...]
+
 Organize Your Launchpad
-Version: SNAPSHOT-06629a760be0c6881c7015e6c5a5241df4e3c812, BuildTime: 2017-12-26T19:40:06Z
+
+Version: , BuildTime:
 Author: blacktop - <https://github.com/blacktop>
 
 Options:
@@ -23,6 +25,8 @@ Options:
 
 Commands:
   default  Organize by Categories
+  save     Save Current Launchpad App Config
+  load     Load Launchpad App Config From File
   help     Shows a list of commands or help for one command
 
 Run 'lporg COMMAND --help' for more information on a command.

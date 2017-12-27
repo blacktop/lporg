@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func main() {
+func testYAML() {
 	var pages map[string][]map[string][]string
 
 	data, err := ioutil.ReadFile("launchpad.yaml")
