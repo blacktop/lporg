@@ -99,11 +99,13 @@ func CmdDefaultOrg(verbose bool) error {
 		log.WithError(err).Fatal("CreateAppFolders")
 	}
 
-	// grp, err := createNewGroup(db, "Porg")
-	// checkError(err)
-	// checkError(addAppToGroup(db, "Atom", grp.Title))
-	// checkError(addAppToGroup(db, "Brave", grp.Title))
-	// checkError(addAppToGroup(db, "iTerm", grp.Title))
+	lpad.EnableTriggers()
+	return restartDock()
+}
+
+// CmdSaveConfig will save your launchpad settings to a config file
+func CmdSaveConfig(verbose bool) error {
+	log.Info("IMPLIMENT SAVING TO CONFIG YAML HERE <=================")
 
 	// if err := db.Where("type = ?", "4").Find(&items).Error; err != nil {
 	// 	log.WithError(err).Error("find item of type=4 failed")
@@ -158,8 +160,14 @@ func CmdDefaultOrg(verbose bool) error {
 	// }
 
 	log.Infof(bold, strings.ToUpper("successfully wrote launchpad.yaml"))
-	lpad.EnableTriggers()
-	return restartDock()
+
+	return nil
+}
+
+// CmdLoadConfig will load your launchpad settings from a config file
+func CmdLoadConfig(verbose bool, configFile string) error {
+	log.Info("IMPLIMENT LOADING FROM CONFIG YAML HERE <=================")
+	return nil
 }
 
 func init() {
@@ -212,8 +220,7 @@ func main() {
 			Name:  "save",
 			Usage: "Save Current Launchpad App Config",
 			Action: func(c *cli.Context) error {
-				log.Info("IMPLIMENT SAVING TO CONFIG YAML HERE <=================")
-				return nil
+				return CmdSaveConfig(c.GlobalBool("verbose"))
 			},
 		},
 		{
@@ -222,7 +229,10 @@ func main() {
 			Action: func(c *cli.Context) error {
 				if c.Args().Present() {
 					// user supplied launchpad config YAML
-					log.Info("IMPLIMENT LOADING FROM CONFIG YAML HERE <=================")
+					err := CmdLoadConfig(c.Bool("verbose"), c.Args().First())
+					if err != nil {
+						return err
+					}
 					fmt.Println(porg)
 				} else {
 					cli.ShowAppHelp(c)
