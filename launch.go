@@ -72,9 +72,10 @@ func CmdDefaultOrg(verbose bool) error {
 	lpad.DB = db
 
 	if verbose {
-		// db.LogMode(true)
+		db.LogMode(true)
 	}
 
+	// Disable the update triggers
 	if err := lpad.DisableTriggers(); err != nil {
 		log.WithError(err).Fatal("DisableTriggers failed")
 	}
@@ -87,8 +88,10 @@ func CmdDefaultOrg(verbose bool) error {
 		log.WithError(err).Fatal("AddRootsAndHoldingPagesfailed")
 	}
 
+	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
 	groupID := math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID()))
 
+	// Read in Config file
 	config, err := database.LoadConfig("launchpad.yaml")
 	if err != nil {
 		log.WithError(err).Fatal("database.LoadConfig")
@@ -98,8 +101,11 @@ func CmdDefaultOrg(verbose bool) error {
 	if err := lpad.CreateAppFolders(config, int(groupID)); err != nil {
 		log.WithError(err).Fatal("CreateAppFolders")
 	}
+	// Re-enable the update triggers
+	if err := lpad.EnableTriggers(); err != nil {
+		log.WithError(err).Fatal("EnableTriggers failed")
+	}
 
-	lpad.EnableTriggers()
 	return restartDock()
 }
 
