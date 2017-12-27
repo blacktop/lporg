@@ -30,88 +30,16 @@ var (
 
 // CmdDefaultOrg will organize your launchpad by the app default categories
 func CmdDefaultOrg(verbose bool) error {
-
-	log.Infof(bold, "[PARSE LAUCHPAD DATABASE]")
-	if verbose {
-		log.SetLevel(log.DebugLevel)
-	}
-
-	// var items []Item
-	// var group Group
-	// appGroups := make(map[string][]string)
-
-	// Older macOS ////////////////////////////////
-	// $HOME/Library/Application\ Support/Dock/*.db
-
-	// High Sierra //////////////////////////////
-	// $TMPDIR../0/com.apple.dock.launchpad/db/db
-
-	// find launchpad database
-	tmpDir := os.Getenv("TMPDIR")
-	lpad.Folder = filepath.Join(tmpDir, "../0/com.apple.dock.launchpad/db")
-	lpad.File = filepath.Join(lpad.Folder, "db")
-	// launchpadDB = "./launchpad.db"
-	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
-		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal)("launchpad DB not found")
-	}
-	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
-
-	// start from a clean slate
-	err := removeOldDatabaseFiles(lpad.Folder)
-	if err != nil {
-		return err
-	}
-
-	// open launchpad database
-	db, err := gorm.Open("sqlite3", lpad.File)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	lpad.DB = db
-
-	if verbose {
-		db.LogMode(true)
-	}
-
-	// Disable the update triggers
-	if err := lpad.DisableTriggers(); err != nil {
-		log.WithError(err).Fatal("DisableTriggers failed")
-	}
-	// Clear all items related to groups so we can re-create them
-	if err := lpad.ClearGroups(); err != nil {
-		log.WithError(err).Fatal("ClearGroups failed")
-	}
-	// Add root and holding pages to items and groups
-	if err := lpad.AddRootsAndHoldingPages(); err != nil {
-		log.WithError(err).Fatal("AddRootsAndHoldingPagesfailed")
-	}
-
-	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
-	groupID := math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID()))
-
-	// Read in Config file
-	config, err := database.LoadConfig("launchpad.yaml")
-	if err != nil {
-		log.WithError(err).Fatal("database.LoadConfig")
-	}
-
-	// Create App Folders
-	if err := lpad.CreateAppFolders(config, int(groupID)); err != nil {
-		log.WithError(err).Fatal("CreateAppFolders")
-	}
-	// Re-enable the update triggers
-	if err := lpad.EnableTriggers(); err != nil {
-		log.WithError(err).Fatal("EnableTriggers failed")
-	}
-
-	return restartDock()
+	log.Info("IMPLIMENT DEFAULT ORG HERE <=================")
+	return nil
 }
 
 // CmdSaveConfig will save your launchpad settings to a config file
 func CmdSaveConfig(verbose bool) error {
 	log.Info("IMPLIMENT SAVING TO CONFIG YAML HERE <=================")
+	// var items []Item
+	// var group Group
+	// appGroups := make(map[string][]string)
 
 	// if err := db.Where("type = ?", "4").Find(&items).Error; err != nil {
 	// 	log.WithError(err).Error("find item of type=4 failed")
@@ -172,8 +100,80 @@ func CmdSaveConfig(verbose bool) error {
 
 // CmdLoadConfig will load your launchpad settings from a config file
 func CmdLoadConfig(verbose bool, configFile string) error {
-	log.Info("IMPLIMENT LOADING FROM CONFIG YAML HERE <=================")
-	return nil
+
+	log.Infof(bold, "[PARSE LAUCHPAD DATABASE]")
+
+	if verbose {
+		log.SetLevel(log.DebugLevel)
+	}
+
+	// Older macOS ////////////////////////////////
+	// $HOME/Library/Application\ Support/Dock/*.db
+
+	// High Sierra //////////////////////////////
+	// $TMPDIR../0/com.apple.dock.launchpad/db/db
+
+	// find launchpad database
+	tmpDir := os.Getenv("TMPDIR")
+	lpad.Folder = filepath.Join(tmpDir, "../0/com.apple.dock.launchpad/db")
+	lpad.File = filepath.Join(lpad.Folder, "db")
+	// launchpadDB = "./launchpad.db"
+	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
+		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal)("launchpad DB not found")
+	}
+	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
+
+	// start from a clean slate
+	err := removeOldDatabaseFiles(lpad.Folder)
+	if err != nil {
+		return err
+	}
+
+	// open launchpad database
+	db, err := gorm.Open("sqlite3", lpad.File)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	lpad.DB = db
+
+	if verbose {
+		db.LogMode(true)
+	}
+
+	// Disable the update triggers
+	if err := lpad.DisableTriggers(); err != nil {
+		log.WithError(err).Fatal("DisableTriggers failed")
+	}
+	// Clear all items related to groups so we can re-create them
+	if err := lpad.ClearGroups(); err != nil {
+		log.WithError(err).Fatal("ClearGroups failed")
+	}
+	// Add root and holding pages to items and groups
+	if err := lpad.AddRootsAndHoldingPages(); err != nil {
+		log.WithError(err).Fatal("AddRootsAndHoldingPagesfailed")
+	}
+
+	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
+	groupID := math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID()))
+
+	// Read in Config file
+	config, err := database.LoadConfig(configFile)
+	if err != nil {
+		log.WithError(err).Fatal("database.LoadConfig")
+	}
+
+	// Create App Folders
+	if err := lpad.CreateAppFolders(config, int(groupID)); err != nil {
+		log.WithError(err).Fatal("CreateAppFolders")
+	}
+	// Re-enable the update triggers
+	if err := lpad.EnableTriggers(); err != nil {
+		log.WithError(err).Fatal("EnableTriggers failed")
+	}
+
+	return restartDock()
 }
 
 func init() {
@@ -219,19 +219,20 @@ func main() {
 			Name:  "default",
 			Usage: "Organize by Categories",
 			Action: func(c *cli.Context) error {
+				fmt.Println(porg)
 				return CmdDefaultOrg(c.GlobalBool("verbose"))
 			},
 		},
 		{
 			Name:  "save",
-			Usage: "Save Current Launchpad App Config",
+			Usage: "Save Current Launchpad Settings Config",
 			Action: func(c *cli.Context) error {
 				return CmdSaveConfig(c.GlobalBool("verbose"))
 			},
 		},
 		{
 			Name:  "load",
-			Usage: "Load Launchpad App Config From File",
+			Usage: "Load Launchpad Settings Config From File",
 			Action: func(c *cli.Context) error {
 				if c.Args().Present() {
 					// user supplied launchpad config YAML
@@ -239,7 +240,6 @@ func main() {
 					if err != nil {
 						return err
 					}
-					fmt.Println(porg)
 				} else {
 					cli.ShowAppHelp(c)
 				}
@@ -248,7 +248,6 @@ func main() {
 		},
 	}
 	app.Action = func(c *cli.Context) error {
-
 		if !c.Args().Present() {
 			cli.ShowAppHelp(c)
 		}

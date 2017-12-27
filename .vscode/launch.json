@@ -13,7 +13,8 @@
             "program": "${workspaceRoot}",
             "args": [
                 "-V",
-                "default"
+                "load",
+                "launchpad.yaml"
             ]
         }
     ]
