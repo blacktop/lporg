@@ -39,91 +39,100 @@ Run 'lporg COMMAND --help' for more information on a command.
 YAML
 
 ```yaml
-Other:
-- Automator
-- Chess
-- DVD Player
-- Font Book
-- Image Capture
-- QuickTime Player
-- Stickies
-- TextEdit
-- Time Machine
-- Activity Monitor
-- AirPort Utility
-- Audio MIDI Setup
-- Bluetooth File Exchange
-- Boot Camp Assistant
-- ColorSync Utility
-- Console
-- Digital Color Meter
-- Disk Utility
-- Grab
-- Grapher
-- Keychain Access
-- LCC Connection Utility
-- Logitech Unifying Software
-- Migration Assistant
-- Script Editor
-- System Information
-- Terminal
-- VoiceOver Utility
-- XQuartz
-
-Productivity:
-- App Store
-- Pages
+pages:
+  -
+    Other:
+      - Automator
+      - Chess
+      - DVD Player
+      - Font Book
+      - Image Capture
+      - QuickTime Player
+      - Stickies
+      - TextEdit
+      - Time Machine
+      - Activity Monitor
+      - AirPort Utility
+      - Audio MIDI Setup
+      - Bluetooth File Exchange
+      - Boot Camp Assistant
+      - ColorSync Utility
+      - Console
+      - Digital Color Meter
+      - Disk Utility
+      - Grab
+      - Grapher
+      - Keychain Access
+      - LCC Connection Utility
+      - Logitech Unifying Software
+      - Migration Assistant
+      - Script Editor
+      - System Information
+      - Terminal
+      - VoiceOver Utility
+      - XQuartz
+    Porg:
+      - Atom
+      - Brave
+      - iTerm
+  -
+    Other2:
+      - Atom
+      - Brave
+      - iTerm
 ```
 
 JSON
 
 ```json
 {
-  "RowID": 122,
-  "App": {
-    "ItemID": 122,
-    "Title": "Spotify",
-    "BundleID": "com.spotify.client",
-    "StoreID": {
-      "String": "",
-      "Valid": false
+  "pages": [
+    {
+      "Other": [
+        "Automator",
+        "Chess",
+        "DVD Player",
+        "Font Book",
+        "Image Capture",
+        "QuickTime Player",
+        "Stickies",
+        "TextEdit",
+        "Time Machine",
+        "Activity Monitor",
+        "AirPort Utility",
+        "Audio MIDI Setup",
+        "Bluetooth File Exchange",
+        "Boot Camp Assistant",
+        "ColorSync Utility",
+        "Console",
+        "Digital Color Meter",
+        "Disk Utility",
+        "Grab",
+        "Grapher",
+        "Keychain Access",
+        "LCC Connection Utility",
+        "Logitech Unifying Software",
+        "Migration Assistant",
+        "Script Editor",
+        "System Information",
+        "Terminal",
+        "VoiceOver Utility",
+        "XQuartz"
+      ],
+      "Porg": [
+        "Atom",
+        "Brave",
+        "iTerm"
+      ]
     },
-    "CategoryID": {
-      "Int64": 8,
-      "Valid": true
-    },
-    "Category": {
-      "ID": 8,
-      "UTI": "public.app-category.music"
-    },
-    "Moddate": 527776226,
-    "Bookmark": "stuff"
-  },
-  "UUID": "A5A1AAAA-AAAA-AAAA-AAAA-A055AAAD93B",
-  "Flags": {
-    "Int64": 0,
-    "Valid": true
-  },
-  "Type": {
-    "Int64": 4,
-    "Valid": true
-  },
-  "Group": {
-    "ID": 173,
-    "CategoryID": {
-      "Int64": 0,
-      "Valid": false
-    },
-    "Title": {
-      "String": "",
-      "Valid": false
+    {
+      "Other2": [
+        "Atom",
+        "Brave",
+        "iTerm"
+      ]
     }
-  },
-  "ParentID": 172,
-  "Ordering": {
-    "Int64": 29,
-    "Valid": true
-  }
+  ]
 }
 ```
 
