@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -23,63 +26,79 @@ var (
 	BuildTime string
 	// for log output
 	bold = "\033[1m%s\033[0m"
+	// lpad is the main object
+	lpad LaunchPad
 )
 
-// App CREATE TABLE apps (item_id INTEGER PRIMARY KEY, title VARCHAR, bundleid VARCHAR, storeid VARCHAR,category_id INTEGER, moddate REAL, bookmark BLOB)
-type App struct {
-	ItemID     int    `gorm:"column:item_id;primary_key"`
-	Title      string `gorm:"column:title"`
-	BundleID   string `gorm:"column:bundleid"`
-	StoreID    string `gorm:"column:storeid"`
-	CategoryID int    `gorm:"column:category_id"`
-	Category   Category
-	Moddate    float64 `gorm:"column:moddate"`
-	Bookmark   []byte  `gorm:"-"`
-	// Bookmark   []byte         `gorm:"column:bookmark"`
-}
-
-// Category CREATE TABLE categories (rowid INTEGER PRIMARY KEY ASC, uti VARCHAR)
-type Category struct {
-	ID  uint   `gorm:"column:rowid;primary_key"`
-	UTI string `gorm:"column:uti"`
-}
-
-// Group CREATE TABLE groups (item_id INTEGER PRIMARY KEY, category_id INTEGER, title VARCHAR)
-type Group struct {
-	// gorm.Model
-	ID         int    `gorm:"column:item_id;primary_key"`
-	CategoryID int    `gorm:"column:category_id"`
-	Title      string `gorm:"column:title"`
-}
-
-// Item - CREATE TABLE items (rowid INTEGER PRIMARY KEY ASC, uuid VARCHAR, flags INTEGER, type INTEGER, parent_id INTEGER NOT NULL, ordering INTEGER)
-type Item struct {
-	RowID int `gorm:"column:rowid;primary_key"`
-	App   App
-	UUID  string `gorm:"column:uuid"`
-	Flags int    `gorm:"column:flags"`
-	Type  int    `gorm:"column:type"`
-	// ParentID Group         `db:"parent_id"`
-	Group    Group `gorm:"ForeignKey:ParentID"`
-	ParentID int   `gorm:"not null;column:parent_id"`
-	Ordering int   `gorm:"column:ordering"`
-}
-
-// DBInfo - CREATE TABLE dbinfo (key VARCHAR, value VARCHAR)
-type DBInfo struct {
-	Key   string
-	Value string
-}
-
-// set DBInfo's table name to be `dbinfo`
-func (DBInfo) TableName() string {
-	return "dbinfo"
+// LaunchPad is a LaunchPad struct
+type LaunchPad struct {
+	DB     *gorm.DB
+	File   string
+	Folder string
 }
 
 func checkError(err error) {
 	if err != nil {
 		log.WithError(err).Fatal("failed")
 	}
+}
+
+// RunCommand runs cmd on file
+func RunCommand(ctx context.Context, cmd string, args ...string) (string, error) {
+
+	var c *exec.Cmd
+
+	if ctx != nil {
+		c = exec.CommandContext(ctx, cmd, args...)
+	} else {
+		c = exec.Command(cmd, args...)
+	}
+
+	output, err := c.Output()
+	if err != nil {
+		return string(output), err
+	}
+
+	// check for exec context timeout
+	if ctx != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return "", fmt.Errorf("command %s timed out", cmd)
+		}
+	}
+
+	return string(output), nil
+}
+
+func restartDock() error {
+	ctx := context.Background()
+
+	log.Info("restarting Dock")
+	if _, err := RunCommand(ctx, "killall", "Dock"); err != nil {
+		return errors.Wrap(err, "killing Dock process failed")
+	}
+
+	// let system settle
+	time.Sleep(5 * time.Second)
+
+	return nil
+}
+
+func removeOldDatabaseFiles(dbpath string) error {
+
+	paths := []string{
+		filepath.Join(dbpath, "db"),
+		filepath.Join(dbpath, "db-shm"),
+		filepath.Join(dbpath, "db-wal"),
+	}
+
+	for _, path := range paths {
+		if err := os.Remove(path); err != nil {
+			return errors.Wrap(err, "removing file failed")
+		}
+		log.WithField("path", path).Info("removed old file")
+	}
+
+	return restartDock()
 }
 
 func createNewGroup(db *gorm.DB, title string) (Group, error) {
@@ -157,75 +176,115 @@ func updateItemGroup(db *gorm.DB, groupID int, item *Item) error {
 // CmdDefaultOrg will organize your launchpad by the app default categories
 func CmdDefaultOrg(verbose bool) error {
 
-	log.Infof(bold, "PARSE LAUCHPAD DATABASE")
+	log.Infof(bold, "[PARSE LAUCHPAD DATABASE]")
 	if verbose {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	var items []Item
-	var group Group
-	appGroups := make(map[string][]string)
+	// var items []Item
+	// var group Group
+	// appGroups := make(map[string][]string)
 
-	// Older macOS
+	// Older macOS ////////////////////////////////
 	// $HOME/Library/Application\ Support/Dock/*.db
 
-	// High Sierra
+	// High Sierra //////////////////////////////
 	// $TMPDIR../0/com.apple.dock.launchpad/db/db
 
 	// find launchpad database
 	tmpDir := os.Getenv("TMPDIR")
-	launchDB, err := filepath.Glob(tmpDir + "../0/com.apple.dock.launchpad/db/db")
-	launchDB, err = filepath.Glob("./launchpad.db")
+	lpad.Folder = filepath.Join(tmpDir, "../0/com.apple.dock.launchpad/db")
+	lpad.File = filepath.Join(lpad.Folder, "db")
+	// launchpadDB = "./launchpad.db"
+	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
+		log.WithError(err).WithField("path", lpad.File).Fatal("launchpad DB not found")
+	}
+	log.WithFields(log.Fields{"database": lpad.File}).Info("found launchpad database")
+
+	// start from a clean slate
+	err := removeOldDatabaseFiles(lpad.Folder)
 	if err != nil {
 		return err
 	}
-	if len(launchDB) == 0 {
-		log.Fatal(errors.New("launchpad DB not found").Error())
-	}
-	log.WithFields(log.Fields{"database": launchDB[0]}).Info("found launchpad database")
+
 	// open launchpad database
-	db, err := gorm.Open("sqlite3", launchDB[0])
+	db, err := gorm.Open("sqlite3", lpad.File)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
 
+	lpad.DB = db
+
 	if verbose {
-		// db.LogMode(true)
+		db.LogMode(true)
 	}
 
-	grp, err := createNewGroup(db, "Porg")
-	checkError(err)
-	checkError(addAppToGroup(db, "Atom", grp.Title))
-	checkError(addAppToGroup(db, "Brave", grp.Title))
-	checkError(addAppToGroup(db, "iTerm", grp.Title))
-
-	if err := db.Where("type = ?", "4").Find(&items).Error; err != nil {
-		log.WithError(err).Error("find item of type=4 failed")
+	if err := lpad.DisableTriggers(); err != nil {
+		log.WithError(err).Error("DisableTriggers failed")
+	}
+	// Clear all items related to groups so we can re-create them
+	if err := lpad.ClearGroups(); err != nil {
+		log.WithError(err).Error("ClearGroups failed")
+	}
+	// Add root and holding pages to items and groups
+	if err := lpad.AddRootsAndHoldingPages(); err != nil {
+		log.WithError(err).Error("AddRootsAndHoldingPagesfailed")
 	}
 
-	for _, item := range items {
-		group = Group{}
-		db.Model(&item).Related(&item.App)
-		db.Model(&item.App).Related(&item.App.Category)
-		log.WithFields(log.Fields{
-			"app_id":    item.App.ItemID,
-			"app_name":  item.App.Title,
-			"parent_id": item.ParentID - 1,
-		}).Debug("parsing item")
-		if err := db.First(&group, item.ParentID-1).Error; err != nil {
-			log.WithFields(log.Fields{"ParentID": item.ParentID - 1}).Debug(errors.Wrap(err, "find group with item.ParentID-1 failed").Error())
-			continue
-		}
-		log.WithFields(log.Fields{
-			"group_id":   group.ID,
-			"group_name": group.Title,
-		}).Debug("parsing group")
-		item.Group = group
-		if len(group.Title) > 0 {
-			appGroups[group.Title] = append(appGroups[group.Title], item.App.Title)
-		}
+	groupID := math.Max(float64(lpad.getMaxAppID()), float64(lpad.getMaxWidgetID()))
+
+	var pages map[string][]map[string][]string
+
+	data, err := ioutil.ReadFile("launchpad.yaml")
+	if err != nil {
+		log.WithError(err).WithField("path", lpad.File).Fatal("launchpad.yaml not found")
+		return err
 	}
+
+	err = yaml.Unmarshal(data, &pages)
+	if err != nil {
+		log.WithError(err).WithField("path", lpad.File).Fatal("unmarshalling yaml failed")
+		return err
+	}
+
+	// Create App Folders
+	if err := lpad.CreateAppFolders(pages, int(groupID)); err != nil {
+		log.WithError(err).Error("CreateAppFolders")
+	}
+
+	// grp, err := createNewGroup(db, "Porg")
+	// checkError(err)
+	// checkError(addAppToGroup(db, "Atom", grp.Title))
+	// checkError(addAppToGroup(db, "Brave", grp.Title))
+	// checkError(addAppToGroup(db, "iTerm", grp.Title))
+
+	// if err := db.Where("type = ?", "4").Find(&items).Error; err != nil {
+	// 	log.WithError(err).Error("find item of type=4 failed")
+	// }
+
+	// for _, item := range items {
+	// 	group = Group{}
+	// 	db.Model(&item).Related(&item.App)
+	// 	db.Model(&item.App).Related(&item.App.Category)
+	// 	log.WithFields(log.Fields{
+	// 		"app_id":    item.App.ItemID,
+	// 		"app_name":  item.App.Title,
+	// 		"parent_id": item.ParentID - 1,
+	// 	}).Debug("parsing item")
+	// 	if err := db.First(&group, item.ParentID-1).Error; err != nil {
+	// 		log.WithError(err).WithFields(log.Fields{"ParentID": item.ParentID - 1}).Debug("find group failed")
+	// 		continue
+	// 	}
+	// 	log.WithFields(log.Fields{
+	// 		"group_id":   group.ID,
+	// 		"group_name": group.Title,
+	// 	}).Debug("parsing group")
+	// 	item.Group = group
+	// 	if len(group.Title) > 0 {
+	// 		appGroups[group.Title] = append(appGroups[group.Title], item.App.Title)
+	// 	}
+	// }
 
 	// fmt.Println("--------------------------------------------------------")
 
@@ -241,16 +300,20 @@ func CmdDefaultOrg(verbose bool) error {
 	// }
 	// g := make(map[string][]Group)
 	// g["Groups"] = groups
-	d, err := yaml.Marshal(&appGroups)
-	if err != nil {
-		return err
-	}
 
-	err = ioutil.WriteFile("launchpad.yaml", d, 0644)
-	if err == nil {
-		log.Infof(bold, "successfully wrote launchpad.yaml")
-	}
-	return err
+	////////////////////////////////////////////////// TODO: write config out to YAML
+	// d, err := yaml.Marshal(&appGroups)
+	// if err != nil {
+	// 	return errors.Wrap(err, "unable to marshall YAML")
+	// }
+
+	// if err = ioutil.WriteFile("launchpad.yaml", d, 0644); err != nil {
+	// 	return err
+	// }
+
+	log.Infof(bold, "successfully wrote launchpad.yaml")
+	lpad.EnableTriggers()
+	return restartDock()
 }
 
 func init() {
