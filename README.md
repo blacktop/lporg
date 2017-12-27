@@ -10,7 +10,7 @@
 
 ## Why
 
-This project is meant to help people setting up brand new Macs or to keep all of their Mac's Launchpad Folders in sync.
+This project is meant to help people setting up a brand new Mac **or** to keep all of their `Launchpad Folders` in sync across devices.
 
 ## Install
 
