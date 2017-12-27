@@ -1,5 +1,17 @@
 package main
 
+import (
+	"context"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"time"
+
+	"github.com/apex/log"
+	"github.com/pkg/errors"
+)
+
 var porg = `                                                                                           
                                           '.:/+ooossoo+/:-'                                         
                                      ':+ydNMMMMMMMMMMMMMMMNmyo:'                                    
@@ -55,3 +67,67 @@ var porg = `
                                    '                              '                                 
 																									
 `
+
+func checkError(err error) {
+	if err != nil {
+		log.WithError(err).Fatal("failed")
+	}
+}
+
+// RunCommand runs cmd on file
+func RunCommand(ctx context.Context, cmd string, args ...string) (string, error) {
+
+	var c *exec.Cmd
+
+	if ctx != nil {
+		c = exec.CommandContext(ctx, cmd, args...)
+	} else {
+		c = exec.Command(cmd, args...)
+	}
+
+	output, err := c.Output()
+	if err != nil {
+		return string(output), err
+	}
+
+	// check for exec context timeout
+	if ctx != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return "", fmt.Errorf("command %s timed out", cmd)
+		}
+	}
+
+	return string(output), nil
+}
+
+func restartDock() error {
+	ctx := context.Background()
+
+	log.Info("restarting Dock")
+	if _, err := RunCommand(ctx, "killall", "Dock"); err != nil {
+		return errors.Wrap(err, "killing Dock process failed")
+	}
+
+	// let system settle
+	time.Sleep(5 * time.Second)
+
+	return nil
+}
+
+func removeOldDatabaseFiles(dbpath string) error {
+
+	paths := []string{
+		filepath.Join(dbpath, "db"),
+		filepath.Join(dbpath, "db-shm"),
+		filepath.Join(dbpath, "db-wal"),
+	}
+
+	for _, path := range paths {
+		if err := os.Remove(path); err != nil {
+			return errors.Wrap(err, "removing file failed")
+		}
+		log.WithField("path", path).Info("removed old file")
+	}
+
+	return restartDock()
+}

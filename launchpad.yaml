@@ -35,7 +35,9 @@ pages:
       - Brave
       - iTerm
   -
-    Other2:
-      - Atom
-      - Brave
+    Dev:
       - iTerm
+      - Hyper
+      - Xcode
+      - PyCharm
+      - WebStorm

@@ -1,17 +1,16 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
 	"github.com/apex/log"
 	clihander "github.com/apex/log/handlers/cli"
+	"github.com/blacktop/lporg/database"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/pkg/errors"
@@ -27,83 +26,12 @@ var (
 	// for log output
 	bold = "\033[1m%s\033[0m"
 	// lpad is the main object
-	lpad LaunchPad
+	lpad database.LaunchPad
 )
 
-// LaunchPad is a LaunchPad struct
-type LaunchPad struct {
-	DB     *gorm.DB
-	File   string
-	Folder string
-}
+func createNewGroup(db *gorm.DB, title string) (database.Group, error) {
 
-func checkError(err error) {
-	if err != nil {
-		log.WithError(err).Fatal("failed")
-	}
-}
-
-// RunCommand runs cmd on file
-func RunCommand(ctx context.Context, cmd string, args ...string) (string, error) {
-
-	var c *exec.Cmd
-
-	if ctx != nil {
-		c = exec.CommandContext(ctx, cmd, args...)
-	} else {
-		c = exec.Command(cmd, args...)
-	}
-
-	output, err := c.Output()
-	if err != nil {
-		return string(output), err
-	}
-
-	// check for exec context timeout
-	if ctx != nil {
-		if ctx.Err() == context.DeadlineExceeded {
-			return "", fmt.Errorf("command %s timed out", cmd)
-		}
-	}
-
-	return string(output), nil
-}
-
-func restartDock() error {
-	ctx := context.Background()
-
-	log.Info("restarting Dock")
-	if _, err := RunCommand(ctx, "killall", "Dock"); err != nil {
-		return errors.Wrap(err, "killing Dock process failed")
-	}
-
-	// let system settle
-	time.Sleep(5 * time.Second)
-
-	return nil
-}
-
-func removeOldDatabaseFiles(dbpath string) error {
-
-	paths := []string{
-		filepath.Join(dbpath, "db"),
-		filepath.Join(dbpath, "db-shm"),
-		filepath.Join(dbpath, "db-wal"),
-	}
-
-	for _, path := range paths {
-		if err := os.Remove(path); err != nil {
-			return errors.Wrap(err, "removing file failed")
-		}
-		log.WithField("path", path).Info("removed old file")
-	}
-
-	return restartDock()
-}
-
-func createNewGroup(db *gorm.DB, title string) (Group, error) {
-
-	group := Group{Title: title}
+	group := database.Group{Title: title}
 
 	success := db.NewRecord(group) // => returns `true` as primary key is blank
 	log.WithFields(log.Fields{"success": success}).Debug("create new group record")
@@ -113,7 +41,7 @@ func createNewGroup(db *gorm.DB, title string) (Group, error) {
 		return group, errors.Wrap(err, "create new entry failed")
 	}
 
-	emptyGroup := Group{}
+	emptyGroup := database.Group{}
 	success = db.NewRecord(emptyGroup)
 	log.WithFields(log.Fields{"success": success}).Debug("create new empty group record")
 
@@ -128,9 +56,9 @@ func createNewGroup(db *gorm.DB, title string) (Group, error) {
 func addAppToGroup(db *gorm.DB, appName, groupName string) error {
 
 	var (
-		app   App
-		item  Item
-		group Group
+		app   database.App
+		item  database.Item
+		group database.Group
 	)
 
 	if err := db.Where("title = ?", appName).First(&app).Error; err != nil {
@@ -146,8 +74,8 @@ func addAppToGroup(db *gorm.DB, appName, groupName string) error {
 }
 
 // CREATE TRIGGER update_item_parent AFTER UPDATE OF parent_id ON items WHEN 0 == (SELECT value FROM dbinfo WHERE key='ignore_items_update_triggers') BEGIN UPDATE dbinfo SET value=1 WHERE key='ignore_items_update_triggers'; UPDATE items SET ordering = (SELECT ifnull(MAX(ordering),0)+1 FROM items WHERE parent_id=new.parent_id AND ROWID!=old.rowid) WHERE ROWID=old.rowid; UPDATE items SET ordering = ordering - 1 WHERE parent_id = old.parent_id and ordering > old.ordering; UPDATE dbinfo SET value=0 WHERE key='ignore_items_update_triggers'; END
-func updateItemGroup(db *gorm.DB, groupID int, item *Item) error {
-	var dbinfo DBInfo
+func updateItemGroup(db *gorm.DB, groupID int, item *database.Item) error {
+	var dbinfo database.DBInfo
 
 	if err := db.Where("key = ?", "ignore_items_update_triggers").First(&dbinfo).Error; err != nil {
 		log.WithError(err).Error("find dbinfo failed")
@@ -232,7 +160,7 @@ func CmdDefaultOrg(verbose bool) error {
 	// 	log.WithError(err).Error("AddRootsAndHoldingPagesfailed")
 	// }
 
-	groupID := math.Max(float64(lpad.getMaxAppID()), float64(lpad.getMaxWidgetID()))
+	groupID := math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID()))
 
 	var pages map[string][]map[string][]string
 
