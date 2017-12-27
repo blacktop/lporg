@@ -2,20 +2,19 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/apex/log"
 	clihander "github.com/apex/log/handlers/cli"
 	"github.com/blacktop/lporg/database"
+	"github.com/blacktop/lporg/database/utils"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/pkg/errors"
 	"github.com/urfave/cli"
-	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -28,78 +27,6 @@ var (
 	// lpad is the main object
 	lpad database.LaunchPad
 )
-
-func createNewGroup(db *gorm.DB, title string) (database.Group, error) {
-
-	group := database.Group{Title: title}
-
-	success := db.NewRecord(group) // => returns `true` as primary key is blank
-	log.WithFields(log.Fields{"success": success}).Debug("create new group record")
-
-	err := db.Create(&group).Error
-	if err != nil {
-		return group, errors.Wrap(err, "create new entry failed")
-	}
-
-	emptyGroup := database.Group{}
-	success = db.NewRecord(emptyGroup)
-	log.WithFields(log.Fields{"success": success}).Debug("create new empty group record")
-
-	err = db.Create(&emptyGroup).Error
-	if err != nil {
-		return group, errors.Wrap(err, "create new EMPTY entry failed")
-	}
-
-	return group, err
-}
-
-func addAppToGroup(db *gorm.DB, appName, groupName string) error {
-
-	var (
-		app   database.App
-		item  database.Item
-		group database.Group
-	)
-
-	if err := db.Where("title = ?", appName).First(&app).Error; err != nil {
-		log.WithError(err).Error("find app failed")
-	}
-	if err := db.Where("rowid = ?", app.ItemID).First(&item).Error; err != nil {
-		log.WithError(err).Error("find item failed")
-	}
-	if err := db.Where("title = ?", groupName).First(&group).Error; err != nil {
-		log.WithError(err).Error("find group failed")
-	}
-	return updateItemGroup(db, group.ID+1, &item)
-}
-
-// CREATE TRIGGER update_item_parent AFTER UPDATE OF parent_id ON items WHEN 0 == (SELECT value FROM dbinfo WHERE key='ignore_items_update_triggers') BEGIN UPDATE dbinfo SET value=1 WHERE key='ignore_items_update_triggers'; UPDATE items SET ordering = (SELECT ifnull(MAX(ordering),0)+1 FROM items WHERE parent_id=new.parent_id AND ROWID!=old.rowid) WHERE ROWID=old.rowid; UPDATE items SET ordering = ordering - 1 WHERE parent_id = old.parent_id and ordering > old.ordering; UPDATE dbinfo SET value=0 WHERE key='ignore_items_update_triggers'; END
-func updateItemGroup(db *gorm.DB, groupID int, item *database.Item) error {
-	var dbinfo database.DBInfo
-
-	if err := db.Where("key = ?", "ignore_items_update_triggers").First(&dbinfo).Error; err != nil {
-		log.WithError(err).Error("find dbinfo failed")
-	}
-	err := db.Model(&item).Update("key", "1").Error
-	if err != nil {
-		log.WithError(err).Error("counld not update ignore_items_update_triggers to 1")
-	}
-
-	// item.ParentID = groupID
-	// item.Ordering = 0
-	// return db.Save(&item).Error
-	err = db.Model(&item).Update("parent_id", groupID).Error
-	if err != nil {
-		log.WithError(err).Error("counld not update item's group")
-	}
-
-	err = db.Model(&item).Update("key", "0").Error
-	if err != nil {
-		log.WithError(err).Error("counld not update ignore_items_update_triggers to 0")
-	}
-
-	return nil
-}
 
 // CmdDefaultOrg will organize your launchpad by the app default categories
 func CmdDefaultOrg(verbose bool) error {
@@ -125,9 +52,9 @@ func CmdDefaultOrg(verbose bool) error {
 	lpad.File = filepath.Join(lpad.Folder, "db")
 	// launchpadDB = "./launchpad.db"
 	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
-		log.WithError(err).WithField("path", lpad.File).Fatal("launchpad DB not found")
+		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal)("launchpad DB not found")
 	}
-	log.WithFields(log.Fields{"database": lpad.File}).Info("found launchpad database")
+	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
 
 	// start from a clean slate
 	err := removeOldDatabaseFiles(lpad.Folder)
@@ -145,41 +72,31 @@ func CmdDefaultOrg(verbose bool) error {
 	lpad.DB = db
 
 	if verbose {
-		db.LogMode(true)
+		// db.LogMode(true)
 	}
 
 	if err := lpad.DisableTriggers(); err != nil {
-		log.WithError(err).Error("DisableTriggers failed")
+		log.WithError(err).Fatal("DisableTriggers failed")
 	}
-	// // Clear all items related to groups so we can re-create them
-	// if err := lpad.ClearGroups(); err != nil {
-	// 	log.WithError(err).Error("ClearGroups failed")
-	// }
-	// // Add root and holding pages to items and groups
-	// if err := lpad.AddRootsAndHoldingPages(); err != nil {
-	// 	log.WithError(err).Error("AddRootsAndHoldingPagesfailed")
-	// }
+	// Clear all items related to groups so we can re-create them
+	if err := lpad.ClearGroups(); err != nil {
+		log.WithError(err).Fatal("ClearGroups failed")
+	}
+	// Add root and holding pages to items and groups
+	if err := lpad.AddRootsAndHoldingPages(); err != nil {
+		log.WithError(err).Fatal("AddRootsAndHoldingPagesfailed")
+	}
 
 	groupID := math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID()))
 
-	var pages map[string][]map[string][]string
-
-	log.WithField("path", "launchpad.yaml").Info("parsing launchpad config YAML")
-	data, err := ioutil.ReadFile("launchpad.yaml")
+	config, err := database.LoadConfig("launchpad.yaml")
 	if err != nil {
-		log.WithError(err).WithField("path", lpad.File).Fatal("launchpad.yaml not found")
-		return err
-	}
-
-	err = yaml.Unmarshal(data, &pages)
-	if err != nil {
-		log.WithError(err).WithField("path", lpad.File).Fatal("unmarshalling yaml failed")
-		return err
+		log.WithError(err).Fatal("database.LoadConfig")
 	}
 
 	// Create App Folders
-	if err := lpad.CreateAppFolders(pages, int(groupID)); err != nil {
-		log.WithError(err).Error("CreateAppFolders")
+	if err := lpad.CreateAppFolders(config, int(groupID)); err != nil {
+		log.WithError(err).Fatal("CreateAppFolders")
 	}
 
 	// grp, err := createNewGroup(db, "Porg")
@@ -240,7 +157,7 @@ func CmdDefaultOrg(verbose bool) error {
 	// 	return err
 	// }
 
-	log.Infof(bold, "successfully wrote launchpad.yaml")
+	log.Infof(bold, strings.ToUpper("successfully wrote launchpad.yaml"))
 	lpad.EnableTriggers()
 	return restartDock()
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/apex/log"
+	"github.com/blacktop/lporg/database/utils"
 	"github.com/pkg/errors"
 )
 
@@ -68,12 +69,6 @@ var porg = `
 																									
 `
 
-func checkError(err error) {
-	if err != nil {
-		log.WithError(err).Fatal("failed")
-	}
-}
-
 // RunCommand runs cmd on file
 func RunCommand(ctx context.Context, cmd string, args ...string) (string, error) {
 
@@ -103,7 +98,7 @@ func RunCommand(ctx context.Context, cmd string, args ...string) (string, error)
 func restartDock() error {
 	ctx := context.Background()
 
-	log.Info("restarting Dock")
+	utils.Indent(log.Info)("restarting Dock")
 	if _, err := RunCommand(ctx, "killall", "Dock"); err != nil {
 		return errors.Wrap(err, "killing Dock process failed")
 	}
@@ -126,7 +121,7 @@ func removeOldDatabaseFiles(dbpath string) error {
 		if err := os.Remove(path); err != nil {
 			return errors.Wrap(err, "removing file failed")
 		}
-		log.WithField("path", path).Info("removed old file")
+		utils.DoubleIndent(log.WithField("path", path).Info)("removed old file")
 	}
 
 	return restartDock()

@@ -139,7 +139,8 @@ JSON
 ## TODO
 
 - [x] swith to Apex log
-- [ ] figure out how to write to DB and not just read :disappointed:
+- [x] figure out how to write to DB and not just read :disappointed:
+- [ ] figure out why creating new groups is failing :confused: 
 - [ ] add ability to org dock as well `dorg` ? :wink:
 
 ## Issues
