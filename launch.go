@@ -223,19 +223,20 @@ func CmdDefaultOrg(verbose bool) error {
 	if err := lpad.DisableTriggers(); err != nil {
 		log.WithError(err).Error("DisableTriggers failed")
 	}
-	// Clear all items related to groups so we can re-create them
-	if err := lpad.ClearGroups(); err != nil {
-		log.WithError(err).Error("ClearGroups failed")
-	}
-	// Add root and holding pages to items and groups
-	if err := lpad.AddRootsAndHoldingPages(); err != nil {
-		log.WithError(err).Error("AddRootsAndHoldingPagesfailed")
-	}
+	// // Clear all items related to groups so we can re-create them
+	// if err := lpad.ClearGroups(); err != nil {
+	// 	log.WithError(err).Error("ClearGroups failed")
+	// }
+	// // Add root and holding pages to items and groups
+	// if err := lpad.AddRootsAndHoldingPages(); err != nil {
+	// 	log.WithError(err).Error("AddRootsAndHoldingPagesfailed")
+	// }
 
 	groupID := math.Max(float64(lpad.getMaxAppID()), float64(lpad.getMaxWidgetID()))
 
 	var pages map[string][]map[string][]string
 
+	log.WithField("path", "launchpad.yaml").Info("parsing launchpad config YAML")
 	data, err := ioutil.ReadFile("launchpad.yaml")
 	if err != nil {
 		log.WithError(err).WithField("path", lpad.File).Fatal("launchpad.yaml not found")

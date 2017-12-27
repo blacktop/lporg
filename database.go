@@ -42,8 +42,8 @@ type Category struct {
 type Group struct {
 	// gorm.Model
 	ID         int    `gorm:"column:item_id;primary_key"`
-	CategoryID int    `gorm:"column:category_id"`
-	Title      string `gorm:"column:title"`
+	CategoryID int    `gorm:"column:category_id;default:null"`
+	Title      string `gorm:"column:title;default:null"`
 }
 
 // Item - CREATE TABLE items (rowid INTEGER PRIMARY KEY ASC, uuid VARCHAR, flags INTEGER, type INTEGER, parent_id INTEGER NOT NULL, ordering INTEGER)
@@ -72,12 +72,16 @@ func (DBInfo) TableName() string {
 
 // ClearGroups clears out items related to groups
 func (lp *LaunchPad) ClearGroups() error {
+	log.Info("clear out groups")
+
 	var items []Item
 	return lp.DB.Where("type in (?)", []int{Root, FolderRoot, Page}).Delete(&items).Error
 }
 
 // AddRootsAndHoldingPages adds back in the RootPage and HoldingPage defaults
 func (lp *LaunchPad) AddRootsAndHoldingPages() error {
+	log.Info("add root and holding pages")
+
 	items := []Item{
 		Item{RowID: 1, UUID: "ROOTPAGE", Type: Root, ParentID: 0},
 		Item{RowID: 2, UUID: "HOLDINGPAGE", Type: Page, ParentID: 1},
@@ -88,11 +92,11 @@ func (lp *LaunchPad) AddRootsAndHoldingPages() error {
 	}
 
 	for item := range items {
-		if success := lp.DB.NewRecord(item); success == false {
-			log.Error("create new record failed")
-		}
+		// if success := lp.DB.NewRecord(item); success == false {
+		// 	log.Error("create new record failed")
+		// }
 		if err := lp.DB.Create(&item).Error; err != nil {
-			return err
+			return errors.Wrap(err, "db insert failed")
 		}
 	}
 
@@ -101,9 +105,10 @@ func (lp *LaunchPad) AddRootsAndHoldingPages() error {
 
 // CreateAppFolders creates all the launchpad app folders
 //    group_id = setup_items(conn, Types.APP, app_layout, app_mapping, group_id, root_parent_id=1)
-func (lp *LaunchPad) CreateAppFolders(pages map[string][]map[string][]string, groupID int) error {
+func (lp *LaunchPad) CreateAppFolders(config map[string][]map[string][]string, groupID int) error {
+	log.Infof(bold, "creating app folders and adding apps to them")
 
-	// for index, page := range pages {
+	// for index, page := range config["pages"] {
 	// 	// Start a new page (note that the ordering starts at 1 instead of 0 as there is a holding page at an ordering of 0)
 	// 	groupID++
 
@@ -122,11 +127,7 @@ func (lp *LaunchPad) CreateAppFolders(pages map[string][]map[string][]string, gr
 	// 		return err
 	// 	}
 
-	// 	group := Group{
-	// 		ID:         groupID,
-	// 		CategoryID: 0,
-	// 		Title:      "",
-	// 	}
+	// group := Group{ID: groupID} // omitting fields makes them null
 
 	// 	if success := lp.DB.NewRecord(group); success == false {
 	// 		log.Error("create new record failed")
@@ -180,13 +181,10 @@ func (lp *LaunchPad) CreateAppFolders(pages map[string][]map[string][]string, gr
 
 // DisableTriggers disables item update triggers
 func (lp *LaunchPad) DisableTriggers() error {
-	var dbinfo DBInfo
 
-	if err := lp.DB.Where("key = ?", "ignore_items_update_triggers").First(&dbinfo).Error; err != nil {
-		return errors.Wrap(err, "dbinfo query failed")
-	}
-	err := lp.DB.Model(&dbinfo).Update("key", "1").Error
-	if err != nil {
+	log.Info("disabling SQL update triggers")
+
+	if err := lp.DB.Exec("UPDATE dbinfo SET value = 1 WHERE key = 'ignore_items_update_triggers';").Error; err != nil {
 		return errors.Wrap(err, "counld not update `ignore_items_update_triggers` to 1")
 	}
 
@@ -195,14 +193,11 @@ func (lp *LaunchPad) DisableTriggers() error {
 
 // EnableTriggers enables item update triggers
 func (lp *LaunchPad) EnableTriggers() error {
-	var dbinfo DBInfo
 
-	if err := lp.DB.Where("key = ?", "ignore_items_update_triggers").First(&dbinfo).Error; err != nil {
-		return errors.Wrap(err, "dbinfo query failed")
-	}
-	err := lp.DB.Model(&dbinfo).Update("key", "0").Error
-	if err != nil {
-		return errors.Wrap(err, "counld not update `ignore_items_update_triggers` to 1")
+	log.Info("enabling SQL update triggers")
+
+	if err := lp.DB.Exec("UPDATE dbinfo SET value = 0 WHERE key = 'ignore_items_update_triggers';").Error; err != nil {
+		return errors.Wrap(err, "counld not update `ignore_items_update_triggers` to 0")
 	}
 
 	return nil
