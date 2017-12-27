@@ -1,6 +1,6 @@
 
 REPO=blacktop
-NAME=launchpad-organizer
+NAME=lporg
 VERSION=$(shell cat VERSION)
 MESSAGE?="New release ${VERSION}"
 
