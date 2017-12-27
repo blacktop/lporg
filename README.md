@@ -140,6 +140,7 @@ JSON
 
 - [x] swith to Apex log
 - [ ] figure out how to write to DB and not just read :disappointed:
+- [ ] add ability to org dock as well `dorg` ? :wink:
 
 ## Issues
 
