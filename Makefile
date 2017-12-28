@@ -24,17 +24,17 @@ setup: ## Install all the build and lint dependencies
 	gometalinter --install
 
 test: ## Run all the tests
-	scripts/reset.sh
-	go run *.go load launchpad.yaml
+	@scripts/reset.sh
+	@go run *.go load launchpad.yaml
 	# gotestcover $(TEST_OPTIONS) -covermode=atomic -coverprofile=coverage.txt $(SOURCE_FILES) -run $(TEST_PATTERN) -timeout=30s
 
 test.save: ## Run all the tests
-	scripts/copy.sh
-	go run *.go save
+	@test -f launchpad.db || scripts/copy.sh
+	@go run *.go save
 
 test.verbose: ## Run all the tests
-	scripts/reset.sh
-	go run *.go -V load launchpad.yaml
+	@scripts/reset.sh
+	@go run *.go -V load launchpad.yaml
 
 cover: test ## Run all the tests and opens the coverage report
 	go tool cover -html=coverage.txt
@@ -78,7 +78,9 @@ build: ## Build a beta version of malice
 	go build
 
 clean: ## Clean up artifacts
-	rm *.tar
+	@scripts/reset.sh
+	@ rm -rf dist/
+	@rm lporg
 
 # Absolutely awesome: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 help:

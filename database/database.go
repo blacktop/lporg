@@ -27,20 +27,20 @@ type Apps struct {
 // Page is a launchpad page object
 type Page struct {
 	Number    int      `yaml:"number" json:"number"`
-	FlatItems []string `yaml:"flat_items" json:"flat_items,omitempty"`
-	Folders   []Folder `yaml:"folders" json:"folders,omitempty"`
+	FlatItems []string `yaml:"flat_items,omitempty" json:"flat_items,omitempty"`
+	Folders   []Folder `yaml:"folders,omitempty" json:"folders,omitempty"`
 }
 
 // Folder is a launchpad folder object
 type Folder struct {
-	Name  string       `yaml:"name" json:"name,omitempty"`
-	Pages []FolderPage `yaml:"pages" json:"pages,omitempty"`
+	Name  string       `yaml:"name,omitempty" json:"name,omitempty"`
+	Pages []FolderPage `yaml:"pages,omitempty" json:"pages,omitempty"`
 }
 
 // FolderPage is a launchpad folder page object
 type FolderPage struct {
-	Number int      `yaml:"number" json:"number"`
-	Items  []string `yaml:"items" json:"items,omitempty"`
+	Number int      `yaml:"number,omitempty" json:"number"`
+	Items  []string `yaml:"items,omitempty" json:"items,omitempty"`
 }
 
 // LoadConfig loads the Launchpad config from the config file
@@ -95,13 +95,17 @@ func (lp *LaunchPad) GetMissing(apps Apps, appType int) ([]string, error) {
 				missing = utils.AppendIfMissing(missing, app.Title)
 			}
 		}
-	case WidgetType:
-		fallthrough
-	default:
-		utils.DoubleIndent(log.WithField("type", appType).Error)("bad type")
+		// case WidgetType:
+		// 	fallthrough
+		// default:
+		// 	utils.DoubleIndent(log.WithField("type", appType).Error)("bad type")
 	}
 
 	sort.Strings(missing)
+
+	if len(missing) > 0 {
+		utils.Indent(log.WithField("missing", missing).Warn)("apps found that are not in supplied config")
+	}
 
 	return missing, nil
 }
@@ -199,7 +203,7 @@ func (lp *LaunchPad) createNewFolder(folderName string, folderNumber, groupID, f
 		Title: folderName,
 	}
 
-	utils.Indent(log.WithField("group", group).Info)("group being added")
+	utils.DoubleIndent(log.WithField("group", group.Title).Info)("folder added")
 
 	// if !lp.DB.NewRecord(group) {
 	// 	utils.Indent(log.WithField("group", group).Debug)("createNewFolder - create new group record failed")
@@ -303,7 +307,12 @@ func (lp *LaunchPad) updateItems(items []string, groupID, itemType int) error {
 // ApplyConfig places all the launchpad apps
 func (lp *LaunchPad) ApplyConfig(config Apps, itemType, groupID, rootParentID int) (int, error) {
 
-	utils.Indent(log.Info)("creating app folders and adding apps to them")
+	switch itemType {
+	case ApplicationType:
+		utils.Indent(log.Info)("creating app folders and adding apps to them")
+	case WidgetType:
+		utils.Indent(log.Info)("creating widget folders and adding widget to them")
+	}
 
 	for _, page := range config.Pages {
 		// create a new page

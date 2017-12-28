@@ -38,6 +38,50 @@ func CmdDefaultOrg(verbose bool) error {
 	return nil
 }
 
+func parsePages(root int, parentMapping map[int][]database.Item) database.Apps {
+	var apps database.Apps
+
+	for pageNum, page := range parentMapping[root] {
+
+		log.Infof("page number: %d", pageNum+1)
+
+		p := database.Page{Number: pageNum + 1}
+		f := database.Folder{}
+		fp := database.FolderPage{}
+
+		for _, item := range parentMapping[page.ID] {
+			switch item.Type {
+			case database.ApplicationType:
+				utils.Indent(log.WithField("title", item.App.Title).Info)("found app")
+				p.FlatItems = append(p.FlatItems, item.App.Title)
+			case database.WidgetType:
+				utils.Indent(log.WithField("title", item.Widget.Title).Info)("found widget")
+				p.FlatItems = append(p.FlatItems, item.Widget.Title)
+			case database.FolderRootType:
+				utils.Indent(log.WithField("title", item.Group.Title).Info)("found folder")
+				f.Name = item.Group.Title
+				fp.Number = 1
+				folderPageItem := parentMapping[item.ID][0]
+				for _, folder := range parentMapping[folderPageItem.ID] {
+					utils.DoubleIndent(log.WithField("title", folder.App.Title).Info)("found app")
+					fp.Items = append(fp.Items, folder.App.Title)
+				}
+				f.Pages = append(f.Pages, fp)
+			case database.PageType:
+				utils.Indent(log.WithField("", item.Group.Title).Info)("found page")
+			default:
+				utils.Indent(log.WithField("type", item.Type).Error)("found ?")
+			}
+		}
+
+		if len(f.Pages) > 0 {
+			p.Folders = append(p.Folders, f)
+		}
+		apps.Pages = append(apps.Pages, p)
+	}
+	return apps
+}
+
 // CmdSaveConfig will save your launchpad settings to a config file
 func CmdSaveConfig(verbose bool) error {
 
@@ -74,8 +118,6 @@ func CmdSaveConfig(verbose bool) error {
 	}
 	defer db.Close()
 
-	lpad.DB = db
-
 	if verbose {
 		db.LogMode(true)
 	}
@@ -101,44 +143,34 @@ func CmdSaveConfig(verbose bool) error {
 		log.WithError(err).Error("items query failed")
 	}
 
+	// create parent mapping object
+	log.Info("collecting launchpad/dashboard pages")
 	parentMapping := make(map[int][]database.Item)
-
 	for _, item := range items {
 		db.Model(&item).Related(&item.App)
 		db.Model(&item).Related(&item.Widget)
 		db.Model(&item).Related(&item.Group)
-		// log.WithField("item", item).Info("item")
 
 		if item.ParentID == launchpadRoot {
 			launchpadRootPageID = item.ID
-			log.WithField("id", launchpadRootPageID).Info("launchpad root rowid")
+			utils.Indent(log.WithField("id", launchpadRootPageID).Info)("launchpad page found")
 		}
 
 		if item.ParentID == dashboardRoot {
 			dashboardRootPageID = item.ID
-			log.WithField("id", dashboardRootPageID).Info("dashboard root rowid")
+			utils.Indent(log.WithField("id", dashboardRootPageID).Info)("dashboard page found")
 		}
 
 		parentMapping[item.ParentID] = append(parentMapping[item.ParentID], item)
 	}
 
-	for _, item := range parentMapping {
-		fmt.Printf("%+v\n", item)
+	log.Info("interating over launchpad pages")
+	conf.Apps = parsePages(launchpadRoot, parentMapping)
 
-		// switch item.Type {
-		// case database.ApplicationType:
-		// 	log.WithField("title", item.App.Title).Info("found app")
-		// case database.WidgetType:
-		// 	log.WithField("title", item.Widget.Title).Info("found widget")
-		// case database.FolderRootType:
-		// 	log.WithField("title", item.Group.Title).Info("found folder")
-		// case database.PageType:
-		// 	log.WithField("", item.Group.Title).Info("found page")
-		// default:
-		// 	log.WithField("type", item.Type).Info("found ?")
-		// }
-	}
+	log.Info("interating over dashboard pages")
+	conf.Widgets = parsePages(dashboardRoot, parentMapping)
 
+	// write out config YAML file
 	d, err := yaml.Marshal(&conf)
 	if err != nil {
 		return errors.Wrap(err, "unable to marshall YAML")
@@ -222,13 +254,26 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 
 	// Place Widgets
 	missing, err := lpad.GetMissing(config.Widgets, database.WidgetType)
-	fmt.Println(missing)
+	if len(missing) > 0 {
+		p := database.Page{
+			Number: len(config.Widgets.Pages) + 1,
+		}
+		p.FlatItems = missing
+		config.Widgets.Pages = append(config.Widgets.Pages, p)
+	}
 	groupID, err = lpad.ApplyConfig(config.Widgets, database.WidgetType, groupID, 3)
 	if err != nil {
 		log.WithError(err).Fatal("ApplyConfig=>Widgets")
 	}
 	// Place Apps
 	missing, err = lpad.GetMissing(config.Apps, database.ApplicationType)
+	if len(missing) > 0 {
+		p := database.Page{
+			Number: len(config.Apps.Pages) + 1,
+		}
+		p.FlatItems = missing
+		config.Apps.Pages = append(config.Apps.Pages, p)
+	}
 	groupID, err = lpad.ApplyConfig(config.Apps, database.ApplicationType, groupID, 1)
 	if err != nil {
 		log.WithError(err).Fatal("ApplyConfig=>Apps")
@@ -283,7 +328,7 @@ func main() {
 	app.Commands = []cli.Command{
 		{
 			Name:  "default",
-			Usage: "Organize by Categories",
+			Usage: "organize by default app categories",
 			Action: func(c *cli.Context) error {
 				fmt.Println(porg)
 				return CmdDefaultOrg(c.GlobalBool("verbose"))
@@ -291,14 +336,14 @@ func main() {
 		},
 		{
 			Name:  "save",
-			Usage: "Save Current Launchpad Settings Config",
+			Usage: "save current launchpad settings",
 			Action: func(c *cli.Context) error {
 				return CmdSaveConfig(c.GlobalBool("verbose"))
 			},
 		},
 		{
 			Name:  "load",
-			Usage: "Load Launchpad Settings Config From File",
+			Usage: "load launchpad settings config from `FILE`",
 			Action: func(c *cli.Context) error {
 				if c.Args().Present() {
 					// user supplied launchpad config YAML
@@ -307,7 +352,7 @@ func main() {
 						return err
 					}
 				} else {
-					cli.ShowAppHelp(c)
+					log.Fatal("please supply a config file to load")
 				}
 				return nil
 			},
