@@ -232,8 +232,10 @@ JSON
 - [x] figure out why creating new groups is failing :confused:
 - [x] add Apps/Widgets not included in config to last page by default
 - [x] add saving current config out to yaml/json
+- [ ] save is still broken (maybe because of empty folder)
 - [ ] add ability to have flat apps, then folder, then more flat apps on a page
 - [ ] create Brewfile from unfound apps IF they are installable via brew?
+- [ ] fix issue where if no files for a folder are installed don't create that folder (might cause eventual DB coruption)
 - [ ] add ability to org dock as well `dorg` ? :wink:
 
 ## Issues
