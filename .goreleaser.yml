@@ -14,6 +14,9 @@ archive:
     amd64: amd64
     darwin: macOS
 
+sign:
+   artifacts: checksum
+  
 brew:
   github:
     owner: blacktop

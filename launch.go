@@ -261,6 +261,7 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 			Number: len(config.Widgets.Pages) + 1,
 		}
 		p.FlatItems = missing
+		utils.DoubleIndent(log.Info)("missing apps will be added to the last page")
 		config.Widgets.Pages = append(config.Widgets.Pages, p)
 	}
 	groupID, err = lpad.ApplyConfig(config.Widgets, database.WidgetType, groupID, 3)
@@ -277,6 +278,7 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 			Number: len(config.Apps.Pages) + 1,
 		}
 		p.FlatItems = missing
+		utils.DoubleIndent(log.Info)("missing apps will be added to the last page")
 		config.Apps.Pages = append(config.Apps.Pages, p)
 	}
 	groupID, err = lpad.ApplyConfig(config.Apps, database.ApplicationType, groupID, 1)
