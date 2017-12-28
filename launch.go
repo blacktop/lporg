@@ -105,7 +105,7 @@ func CmdSaveConfig(verbose bool) error {
 	tmpDir := os.Getenv("TMPDIR")
 	lpad.Folder = filepath.Join(tmpDir, "../0/com.apple.dock.launchpad/db")
 	lpad.File = filepath.Join(lpad.Folder, "db")
-	lpad.File = "./launchpad.db"
+	// lpad.File = "./launchpad.db"
 	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
 		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal)("launchpad DB not found")
 	}
@@ -185,6 +185,25 @@ func CmdSaveConfig(verbose bool) error {
 	return nil
 }
 
+// add missing apps to pages at 30 apps per page
+func parseMissing(missing []string, pages []database.Page) []database.Page {
+	if len(missing) > 0 {
+		for _, chunk := range split(missing, 30) {
+			p := database.Page{
+				Number: len(pages) + 1,
+			}
+			p.FlatItems = chunk
+			pages = append(pages, p)
+			for _, smallerChunk := range split(chunk, 6) {
+				msg := fmt.Sprintf("adding missing apps to page=%d", p.Number)
+				utils.DoubleIndent(log.WithField("apps", smallerChunk).Warn)(msg)
+			}
+		}
+	}
+
+	return pages
+}
+
 // CmdLoadConfig will load your launchpad settings from a config file
 func CmdLoadConfig(verbose bool, configFile string) error {
 
@@ -256,14 +275,11 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 	// Place Widgets ///////////////////////////////////////////////////
 	utils.Indent(log.Info)("creating Widget folders and adding widgets to them")
 	missing, err := lpad.GetMissing(config.Widgets, database.WidgetType)
-	if len(missing) > 0 {
-		p := database.Page{
-			Number: len(config.Widgets.Pages) + 1,
-		}
-		p.FlatItems = missing
-		utils.DoubleIndent(log.Info)("missing apps will be added to the last page")
-		config.Widgets.Pages = append(config.Widgets.Pages, p)
+	if err != nil {
+		log.WithError(err).Fatal("GetMissing=>Widgets")
 	}
+
+	config.Widgets.Pages = parseMissing(missing, config.Widgets.Pages)
 	groupID, err = lpad.ApplyConfig(config.Widgets, database.WidgetType, groupID, 3)
 	if err != nil {
 		log.WithError(err).Fatal("ApplyConfig=>Widgets")
@@ -273,14 +289,11 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 	// Place Apps ///////////////////////////////////////////////////////
 	utils.Indent(log.Info)("creating App folders and adding apps to them")
 	missing, err = lpad.GetMissing(config.Apps, database.ApplicationType)
-	if len(missing) > 0 {
-		p := database.Page{
-			Number: len(config.Apps.Pages) + 1,
-		}
-		p.FlatItems = missing
-		utils.DoubleIndent(log.Info)("missing apps will be added to the last page")
-		config.Apps.Pages = append(config.Apps.Pages, p)
+	if err != nil {
+		log.WithError(err).Fatal("GetMissing=>Apps")
 	}
+
+	config.Apps.Pages = parseMissing(missing, config.Apps.Pages)
 	groupID, err = lpad.ApplyConfig(config.Apps, database.ApplicationType, groupID, 1)
 	if err != nil {
 		log.WithError(err).Fatal("ApplyConfig=>Apps")

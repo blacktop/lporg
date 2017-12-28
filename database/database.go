@@ -111,7 +111,7 @@ func (lp *LaunchPad) GetMissing(apps Apps, appType int) ([]string, error) {
 	sort.Strings(missing)
 
 	if len(missing) > 0 {
-		utils.DoubleIndent(log.WithField("missing", missing).Warn)("apps found that are not in supplied config")
+		utils.DoubleIndent(log.WithField("count", len(missing)).Info)("found apps/widgets that are not in supplied config")
 	}
 
 	return missing, nil

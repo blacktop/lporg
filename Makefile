@@ -79,8 +79,9 @@ build: ## Build a beta version of malice
 
 clean: ## Clean up artifacts
 	@scripts/reset.sh
-	@ rm -rf dist/
-	@rm lporg
+	@rm -rf dist/ || true
+	@rm launchpad.db || true
+	@rm lporg || true
 
 # Absolutely awesome: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 help:

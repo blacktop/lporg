@@ -233,6 +233,7 @@ JSON
 - [x] add Apps/Widgets not included in config to last page by default
 - [x] add saving current config out to yaml/json
 - [ ] add ability to have flat apps, then folder, then more flat apps on a page
+- [ ] create Brewfile from unfound apps IF they are installable via brew?
 - [ ] add ability to org dock as well `dorg` ? :wink:
 
 ## Issues
