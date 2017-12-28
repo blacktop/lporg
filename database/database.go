@@ -12,6 +12,8 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+
+
 // Config is the Launchpad config
 type Config struct {
 	Apps    Apps `yaml:"apps" json:"apps,omitempty"`
@@ -60,6 +62,42 @@ func LoadConfig(filename string) (Config, error) {
 	}
 
 	return conf, nil
+}
+
+// getMissing returns a list of the rest of the apps not in the config
+func (lp *LaunchPad) getMissing(apps Apps, appType int) ([]string, error) {
+
+	missing := []string{}
+	configApps := []string{}
+
+	// get all apps from config file
+	for _, page := range apps.Pages{
+		for _, item := page.FlatItems {
+			configApps = append(configApps, item)
+		}
+		for _, folder := range page.Folders{
+			for _, fpage := range folder.Pages {
+				for _, fitem := range fpage.Items {
+					configApps = append(configApps, fitem)
+				}
+			}
+		}
+	}
+
+	switch appType {
+	case ApplicationType:
+		rows, err := db.Table("users").Select("users.name, emails.email").Joins("left join emails on emails.user_id = users.id").Rows()
+for rows.Next() {
+    if !utils.StringInSlice("test", configApps) {
+missing = append(missing, "test")
+	}
+}
+	case WidgetType:
+		fallthrough
+	default:
+			utils.DoubleIndent(log.WithField("type", itemType).Error)("bad type")
+	}
+	return sort.Strings(missing)
 }
 
 // ClearGroups clears out items related to groups

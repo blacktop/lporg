@@ -29,6 +29,16 @@ func DoubleIndent(f func(s string)) func(string) {
 	}
 }
 
+// StringInSlice finds string in array
+func StringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
 func checkError(err error) {
 	if err != nil {
 		log.WithError(err).Fatal("failed")
