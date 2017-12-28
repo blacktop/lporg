@@ -67,17 +67,17 @@ func LoadConfig(filename string) (Config, error) {
 func (lp *LaunchPad) GetMissing(apps Apps, appType int) ([]string, error) {
 
 	missing := []string{}
-	configApps := []string{}
+	appsFromConfig := []string{}
 
 	// get all apps from config file
 	for _, page := range apps.Pages {
 		for _, item := range page.FlatItems {
-			configApps = append(configApps, item)
+			appsFromConfig = append(appsFromConfig, item)
 		}
 		for _, folder := range page.Folders {
 			for _, fpage := range folder.Pages {
 				for _, fitem := range fpage.Items {
-					configApps = append(configApps, fitem)
+					appsFromConfig = append(appsFromConfig, fitem)
 				}
 			}
 		}
@@ -91,20 +91,27 @@ func (lp *LaunchPad) GetMissing(apps Apps, appType int) ([]string, error) {
 			return nil, err
 		}
 		for _, app := range apps {
-			if !utils.StringInSlice(app.Title, configApps) {
+			if !utils.StringInSlice(app.Title, appsFromConfig) {
 				missing = utils.AppendIfMissing(missing, app.Title)
 			}
 		}
-		// case WidgetType:
-		// 	fallthrough
-		// default:
-		// 	utils.DoubleIndent(log.WithField("type", appType).Error)("bad type")
+	case WidgetType:
+		var widgets []Widget
+		err := lp.DB.Table("widgets").Select("widgets.item_id, widgets.title").Joins("left join items on items.rowid = widgets.item_id").Scan(&widgets).Error
+		if err != nil {
+			return nil, err
+		}
+		for _, widget := range widgets {
+			if !utils.StringInSlice(widget.Title, appsFromConfig) {
+				missing = utils.AppendIfMissing(missing, widget.Title)
+			}
+		}
 	}
 
 	sort.Strings(missing)
 
 	if len(missing) > 0 {
-		utils.Indent(log.WithField("missing", missing).Warn)("apps found that are not in supplied config")
+		utils.DoubleIndent(log.WithField("missing", missing).Warn)("apps found that are not in supplied config")
 	}
 
 	return missing, nil
@@ -306,13 +313,6 @@ func (lp *LaunchPad) updateItems(items []string, groupID, itemType int) error {
 
 // ApplyConfig places all the launchpad apps
 func (lp *LaunchPad) ApplyConfig(config Apps, itemType, groupID, rootParentID int) (int, error) {
-
-	switch itemType {
-	case ApplicationType:
-		utils.Indent(log.Info)("creating app folders and adding apps to them")
-	case WidgetType:
-		utils.Indent(log.Info)("creating widget folders and adding widget to them")
-	}
 
 	for _, page := range config.Pages {
 		// create a new page

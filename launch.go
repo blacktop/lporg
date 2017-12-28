@@ -85,7 +85,7 @@ func parsePages(root int, parentMapping map[int][]database.Item) database.Apps {
 // CmdSaveConfig will save your launchpad settings to a config file
 func CmdSaveConfig(verbose bool) error {
 
-	log.Infof(bold, strings.ToUpper("saving launchpad database"))
+	log.Infof(bold, "SAVING LAUNCHPAD DATABASE")
 
 	if verbose {
 		log.SetLevel(log.DebugLevel)
@@ -188,7 +188,7 @@ func CmdSaveConfig(verbose bool) error {
 // CmdLoadConfig will load your launchpad settings from a config file
 func CmdLoadConfig(verbose bool, configFile string) error {
 
-	log.Infof(bold, "[PARSE LAUCHPAD DATABASE]")
+	log.Infof(bold, "PARSE LAUCHPAD DATABASE")
 
 	if verbose {
 		log.SetLevel(log.DebugLevel)
@@ -204,17 +204,17 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 	tmpDir := os.Getenv("TMPDIR")
 	lpad.Folder = filepath.Join(tmpDir, "../0/com.apple.dock.launchpad/db")
 	lpad.File = filepath.Join(lpad.Folder, "db")
-	lpad.File = "./launchpad.db"
+	// lpad.File = "./launchpad.db"
 	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
 		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal)("launchpad DB not found")
 	}
 	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
 
 	// start from a clean slate
-	// err := removeOldDatabaseFiles(lpad.Folder)
-	// if err != nil {
-	// 	return err
-	// }
+	err := removeOldDatabaseFiles(lpad.Folder)
+	if err != nil {
+		return err
+	}
 
 	// open launchpad database
 	db, err := gorm.Open("sqlite3", lpad.File)
@@ -252,7 +252,9 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 		log.WithError(err).Fatal("database.LoadConfig")
 	}
 
-	// Place Widgets
+	////////////////////////////////////////////////////////////////////
+	// Place Widgets ///////////////////////////////////////////////////
+	utils.Indent(log.Info)("creating Widget folders and adding widgets to them")
 	missing, err := lpad.GetMissing(config.Widgets, database.WidgetType)
 	if len(missing) > 0 {
 		p := database.Page{
@@ -265,7 +267,10 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 	if err != nil {
 		log.WithError(err).Fatal("ApplyConfig=>Widgets")
 	}
-	// Place Apps
+
+	/////////////////////////////////////////////////////////////////////
+	// Place Apps ///////////////////////////////////////////////////////
+	utils.Indent(log.Info)("creating App folders and adding apps to them")
 	missing, err = lpad.GetMissing(config.Apps, database.ApplicationType)
 	if len(missing) > 0 {
 		p := database.Page{
