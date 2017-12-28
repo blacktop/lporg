@@ -49,7 +49,6 @@ Run 'lporg COMMAND --help' for more information on a command.
 YAML
 
 ```yaml
-      - DVD Player
 ---
 apps:
   pages:
@@ -224,7 +223,6 @@ JSON
     ]
   }
 }
-
 ```
 
 ## TODO
@@ -234,6 +232,7 @@ JSON
 - [x] figure out why creating new groups is failing :confused:
 - [ ] add Apps/Widgets not included in config to last page by default
 - [ ] add saving current config out to yaml/json
+- [ ] add ability to have flat apps, then folder, then more flat apps on a page
 - [ ] add ability to org dock as well `dorg` ? :wink:
 
 ## Issues
