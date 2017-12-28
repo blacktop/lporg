@@ -18,3 +18,5 @@ debug
 lporg
 
 dist/
+*.csv
+launchpad-save.yaml

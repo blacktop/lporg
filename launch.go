@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,7 +16,9 @@ import (
 	"github.com/blacktop/lporg/database/utils"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -36,62 +40,113 @@ func CmdDefaultOrg(verbose bool) error {
 
 // CmdSaveConfig will save your launchpad settings to a config file
 func CmdSaveConfig(verbose bool) error {
-	log.Info("IMPLIMENT SAVING TO CONFIG YAML HERE <=================")
-	// var items []Item
-	// var group Group
-	// appGroups := make(map[string][]string)
 
-	// if err := db.Where("type = ?", "4").Find(&items).Error; err != nil {
-	// 	log.WithError(err).Error("find item of type=4 failed")
-	// }
+	log.Infof(bold, strings.ToUpper("saving launchpad database"))
 
-	// for _, item := range items {
-	// 	group = Group{}
-	// 	db.Model(&item).Related(&item.App)
-	// 	db.Model(&item.App).Related(&item.App.Category)
-	// 	log.WithFields(log.Fields{
-	// 		"app_id":    item.App.ItemID,
-	// 		"app_name":  item.App.Title,
-	// 		"parent_id": item.ParentID - 1,
-	// 	}).Debug("parsing item")
-	// 	if err := db.First(&group, item.ParentID-1).Error; err != nil {
-	// 		log.WithError(err).WithFields(log.Fields{"ParentID": item.ParentID - 1}).Debug("find group failed")
-	// 		continue
-	// 	}
-	// 	log.WithFields(log.Fields{
-	// 		"group_id":   group.ID,
-	// 		"group_name": group.Title,
-	// 	}).Debug("parsing group")
-	// 	item.Group = group
-	// 	if len(group.Title) > 0 {
-	// 		appGroups[group.Title] = append(appGroups[group.Title], item.App.Title)
-	// 	}
-	// }
+	if verbose {
+		log.SetLevel(log.DebugLevel)
+	}
 
-	// fmt.Println("--------------------------------------------------------")
+	var (
+		launchpadRoot       int
+		dashboardRoot       int
+		launchpadRootPageID int
+		dashboardRootPageID int
+		items               []database.Item
+		dbinfo              []database.DBInfo
+		conf                database.Config
+	)
 
-	// fmt.Printf("item========================================> %+v\n", item)
-	// itemJSON, _ := json.Marshal(item)
-	// fmt.Println(string(itemJSON))
-	// fmt.Printf("%+v\n", item.App)
+	// find launchpad database
+	tmpDir := os.Getenv("TMPDIR")
+	lpad.Folder = filepath.Join(tmpDir, "../0/com.apple.dock.launchpad/db")
+	lpad.File = filepath.Join(lpad.Folder, "db")
+	lpad.File = "./launchpad.db"
+	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
+		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal)("launchpad DB not found")
+	}
+	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
 
-	// write out to TOML
-	// checkError(writeTomlFile("./launchpad.toml", item))
-	// if err := db.Find(&groups).Error; err != nil {
-	// 	log.Error(err)
-	// }
-	// g := make(map[string][]Group)
-	// g["Groups"] = groups
+	// open launchpad database
+	db, err := gorm.Open("sqlite3", lpad.File)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
 
-	////////////////////////////////////////////////// TODO: write config out to YAML
-	// d, err := yaml.Marshal(&appGroups)
-	// if err != nil {
-	// 	return errors.Wrap(err, "unable to marshall YAML")
-	// }
+	lpad.DB = db
 
-	// if err = ioutil.WriteFile("launchpad.yaml", d, 0644); err != nil {
-	// 	return err
-	// }
+	if verbose {
+		db.LogMode(true)
+	}
+
+	// get launchpad and dashboard roots
+	if err := db.Where("key in (?)", []string{"launchpad_root", "dashboard_root"}).Find(&dbinfo).Error; err != nil {
+		log.WithError(err).Error("dbinfo query failed")
+	}
+	for _, info := range dbinfo {
+		switch info.Key {
+		case "launchpad_root":
+			launchpadRoot, _ = strconv.Atoi(info.Value)
+		case "dashboard_root":
+			dashboardRoot, _ = strconv.Atoi(info.Value)
+		default:
+			log.WithField("key", info.Key).Error("bad key")
+		}
+	}
+
+	if err := db.Not("uuid in (?)", []string{"ROOTPAGE", "HOLDINGPAGE", "ROOTPAGE_DB", "HOLDINGPAGE_DB", "ROOTPAGE_VERS", "HOLDINGPAGE_VERS"}).
+		Order("items.parent_id, items.ordering").
+		Find(&items).Error; err != nil {
+		log.WithError(err).Error("items query failed")
+	}
+
+	parentMapping := make(map[int][]database.Item)
+
+	for _, item := range items {
+		db.Model(&item).Related(&item.App)
+		db.Model(&item).Related(&item.Widget)
+		db.Model(&item).Related(&item.Group)
+		// log.WithField("item", item).Info("item")
+
+		if item.ParentID == launchpadRoot {
+			launchpadRootPageID = item.ID
+			log.WithField("id", launchpadRootPageID).Info("launchpad root rowid")
+		}
+
+		if item.ParentID == dashboardRoot {
+			dashboardRootPageID = item.ID
+			log.WithField("id", dashboardRootPageID).Info("dashboard root rowid")
+		}
+
+		parentMapping[item.ParentID] = append(parentMapping[item.ParentID], item)
+	}
+
+	for _, item := range parentMapping {
+		fmt.Printf("%+v\n", item)
+
+		// switch item.Type {
+		// case database.ApplicationType:
+		// 	log.WithField("title", item.App.Title).Info("found app")
+		// case database.WidgetType:
+		// 	log.WithField("title", item.Widget.Title).Info("found widget")
+		// case database.FolderRootType:
+		// 	log.WithField("title", item.Group.Title).Info("found folder")
+		// case database.PageType:
+		// 	log.WithField("", item.Group.Title).Info("found page")
+		// default:
+		// 	log.WithField("type", item.Type).Info("found ?")
+		// }
+	}
+
+	d, err := yaml.Marshal(&conf)
+	if err != nil {
+		return errors.Wrap(err, "unable to marshall YAML")
+	}
+
+	if err = ioutil.WriteFile("launchpad-save.yaml", d, 0644); err != nil {
+		return errors.Wrap(err, "unable to write YAML")
+	}
 
 	log.Infof(bold, strings.ToUpper("successfully wrote launchpad.yaml"))
 

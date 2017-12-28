@@ -28,6 +28,10 @@ test: ## Run all the tests
 	go run *.go load launchpad.yaml
 	# gotestcover $(TEST_OPTIONS) -covermode=atomic -coverprofile=coverage.txt $(SOURCE_FILES) -run $(TEST_PATTERN) -timeout=30s
 
+test.save: ## Run all the tests
+	scripts/copy.sh
+	go run *.go save
+
 test.verbose: ## Run all the tests
 	scripts/reset.sh
 	go run *.go -V load launchpad.yaml
