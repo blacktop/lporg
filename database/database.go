@@ -13,26 +13,53 @@ import (
 )
 
 // Config is the Launchpad config
-type Config map[string][]map[string][]string
+type Config struct {
+	Apps    Apps `yaml:"apps" json:"apps,omitempty"`
+	Widgets Apps `yaml:"widgets" json:"widgets,omitempty"`
+}
+
+// Apps is the launchpad apps config object
+type Apps struct {
+	Pages []Page `yaml:"pages" json:"pages,omitempty"`
+}
+
+// Page is a launchpad page object
+type Page struct {
+	Number    int      `yaml:"number" json:"number"`
+	FlatItems []string `yaml:"flat_items" json:"flat_items,omitempty"`
+	Folders   []Folder `yaml:"folders" json:"folders,omitempty"`
+}
+
+// Folder is a launchpad folder object
+type Folder struct {
+	Name  string       `yaml:"name" json:"name,omitempty"`
+	Pages []FolderPage `yaml:"pages" json:"pages,omitempty"`
+}
+
+// FolderPage is a launchpad folder page object
+type FolderPage struct {
+	Number int      `yaml:"number" json:"number"`
+	Items  []string `yaml:"items" json:"items,omitempty"`
+}
 
 // LoadConfig loads the Launchpad config from the config file
 func LoadConfig(filename string) (Config, error) {
-	var pages Config
+	var conf Config
 
 	utils.Indent(log.WithField("path", filename).Info)("parsing launchpad config YAML")
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		utils.DoubleIndent(log.WithError(err).WithField("path", filename).Fatal)("config file not found")
-		return nil, err
+		return conf, err
 	}
 
-	err = yaml.Unmarshal(data, &pages)
+	err = yaml.Unmarshal(data, &conf)
 	if err != nil {
 		utils.DoubleIndent(log.WithError(err).WithField("path", filename).Fatal)("unmarshalling yaml failed")
-		return nil, err
+		return conf, err
 	}
 
-	return pages, nil
+	return conf, nil
 }
 
 // ClearGroups clears out items related to groups
@@ -59,7 +86,7 @@ func (lp *LaunchPad) AddRootsAndHoldingPages() error {
 	for _, item := range items {
 		group := Group{ID: item.ID}
 
-		// if success := lp.DB.NewRecord(item); success == false {
+		// if !lp.DB.NewRecord(item) {
 		// 	log.Error("create new record failed")
 		// }
 		if err := lp.DB.Create(&item).Error; err != nil {
@@ -73,110 +100,214 @@ func (lp *LaunchPad) AddRootsAndHoldingPages() error {
 	return nil
 }
 
-// CreateAppFolders creates all the launchpad app folders
-//    group_id = setup_items(conn, Types.APP, app_layout, app_mapping, group_id, root_parent_id=1)
-func (lp *LaunchPad) CreateAppFolders(config map[string][]map[string][]string, groupID int) error {
+// createNewPage creates a new page
+func (lp *LaunchPad) createNewPage(pageNumber, groupID, pageParentID int) error {
+
+	item := Item{
+		ID:       groupID,
+		UUID:     newUUID(),
+		Flags:    PageType,
+		ParentID: pageParentID,
+		Ordering: pageNumber, // TODO: check if I should use 0 base index or 1 (what I'm doing now)
+	}
+
+	// if !lp.DB.NewRecord(item) {
+	// 	utils.DoubleIndent(log.WithField("item", item).Debug)("createNewPage - create new item record failed")
+	// }
+	if err := lp.DB.Create(&item).Error; err != nil {
+		return errors.Wrap(err, "createNewPage")
+	}
+
+	group := Group{ID: groupID} // omitting fields makes them null
+
+	// if !lp.DB.NewRecord(group) {
+	// 	utils.Indent(log.WithField("group", group).Debug)("createNewPage - create new group record failed")
+	// }
+	if err := lp.DB.Create(&group).Error; err != nil {
+		return errors.Wrap(err, "createNewPage")
+	}
+
+	return nil
+}
+
+// createNewFolder creates a new app folder
+func (lp *LaunchPad) createNewFolder(folderName string, folderNumber, groupID, folderParentID int) error {
+
+	item := Item{
+		ID:       groupID,
+		UUID:     newUUID(),
+		Flags:    FolderRootType,
+		ParentID: folderParentID,
+		Ordering: folderNumber,
+	}
+
+	// if !lp.DB.NewRecord(item) {
+	// 	utils.DoubleIndent(log.WithField("item", item).Debug)("createNewFolder - create new item record failed")
+	// }
+	if err := lp.DB.Create(&item).Error; err != nil {
+		return errors.Wrap(err, "createNewFolder")
+	}
+
+	group := Group{
+		ID:    groupID,
+		Title: folderName,
+	}
+
+	utils.Indent(log.WithField("group", group).Info)("group being added")
+
+	// if !lp.DB.NewRecord(group) {
+	// 	utils.Indent(log.WithField("group", group).Debug)("createNewFolder - create new group record failed")
+	// }
+	if err := lp.DB.Create(&group).Error; err != nil {
+		return errors.Wrap(err, "createNewFolder")
+	}
+
+	return nil
+}
+
+// createNewFolderPage creates a new folder page
+func (lp *LaunchPad) createNewFolderPage(folderPageNumber, groupID, rootParentID int) error {
+
+	item := Item{
+		ID:       groupID,
+		UUID:     newUUID(),
+		Flags:    PageType,
+		ParentID: groupID - 1,
+		Ordering: folderPageNumber,
+	}
+
+	if !lp.DB.NewRecord(item) {
+		utils.DoubleIndent(log.WithField("item", item).Debug)("createNewFolderPage - create new item record failed")
+	}
+	if err := lp.DB.Create(&item).Error; err != nil {
+		return errors.Wrap(err, "createNewFolderPage")
+	}
+
+	group := Group{ID: groupID}
+	if !lp.DB.NewRecord(group) {
+		utils.Indent(log.WithField("group", group).Debug)("createNewFolderPage - create new group record failed")
+	}
+	if err := lp.DB.Create(&group).Error; err != nil {
+		return errors.Wrap(err, "createNewFolderPage")
+	}
+
+	return nil
+}
+
+// updateItems will add the apps/widgets to the correct page/folder
+func (lp *LaunchPad) updateItems(items []string, groupID, rootParentID, itemType int) error {
+
+	var (
+		i Item
+		a App
+		w Widget
+	)
+
+	for iidx, item := range items {
+
+		i = Item{}
+		a = App{}
+		w = Widget{}
+
+		switch itemType {
+		case ApplicationType:
+			if lp.DB.Where("title = ?", item).First(&a).RecordNotFound() {
+				utils.DoubleIndent(log.WithField("app", item).Warn)("app not installed. SKIPPING...")
+				continue
+			}
+			if err := lp.DB.Where("rowid = ?", a.ID).First(&i).Error; err != nil {
+				return errors.Wrap(err, "createItems")
+			}
+
+			lp.DB.Model(&i).Related(&i.App)
+		case WidgetType:
+			if lp.DB.Where("title = ?", item).First(&w).RecordNotFound() {
+				utils.DoubleIndent(log.WithField("app", item).Warn)("widget not installed. SKIPPING...")
+				continue
+			}
+			if err := lp.DB.Where("rowid = ?", w.ID).First(&i).Error; err != nil {
+				return errors.Wrap(err, "createItems")
+			}
+
+			lp.DB.Model(&i).Related(&i.Widget)
+		default:
+			utils.DoubleIndent(log.WithField("type", itemType).Error)("bad type")
+		}
+
+		newItem := Item{
+			ID:       i.ID,
+			UUID:     i.UUID,
+			Flags:    i.Flags,
+			ParentID: groupID,
+			Ordering: iidx,
+		}
+
+		// if !lp.DB.NewRecord(newItem) {
+		// 	utils.DoubleIndent(log.WithField("item", newItem).Debug)("createItems - create new item record failed")
+		// }
+		if err := lp.DB.Save(&newItem).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ApplyConfig places all the launchpad apps
+func (lp *LaunchPad) ApplyConfig(config Apps, itemType, groupID, rootParentID int) (int, error) {
+
 	utils.Indent(log.Info)("creating app folders and adding apps to them")
 
-	for index, page := range config["pages"] {
-		// Start a new page (note that the ordering starts at 1 instead of 0 as there is a holding page at an ordering of 0)
+	pageParentID := groupID
+	for _, page := range config.Pages {
+		// create a new page
 		groupID++
-
-		item := Item{
-			ID:       groupID,
-			UUID:     newUUID(),
-			Flags:    PageType,
-			ParentID: 1,
-			Ordering: index + 1,
+		err := lp.createNewPage(page.Number, groupID, pageParentID)
+		if err != nil {
+			return groupID, errors.Wrap(err, "createNewPage")
 		}
 
-		if success := lp.DB.NewRecord(item); success == false {
-			utils.DoubleIndent(log.WithField("item", item).Debug)("create new item record failed")
-		}
-		if err := lp.DB.Create(&item).Error; err != nil {
-			return err
-		}
-
-		group := Group{ID: groupID} // omitting fields makes them null
-
-		if success := lp.DB.NewRecord(group); success == false {
-			utils.Indent(log.WithField("group", group).Debug)("create new group record failed")
-		}
-		if err := lp.DB.Create(&group).Error; err != nil {
-			return err
-		}
-		// Capture the group id of the page to be used for child items
-		pageParentID := groupID
-
-		// Iterate through items
-		itemOrdering := 0
-		for folderName, items := range page {
-			// Start a new folder
-			groupID++
-
-			item := Item{
-				ID:       groupID,
-				UUID:     newUUID(),
-				Flags:    FolderRootType,
-				ParentID: pageParentID,
-				Ordering: itemOrdering,
-			}
-
-			if success := lp.DB.NewRecord(item); success == false {
-				utils.DoubleIndent(log.WithField("item", item).Debug)("create new item record failed")
-			}
-			if err := lp.DB.Create(&item).Error; err != nil {
-				return err
-			}
-
-			group := Group{
-				ID:         groupID,
-				CategoryID: 0,
-				Title:      folderName,
-			}
-			utils.Indent(log.WithField("group", group).Info)("group being added")
-			if success := lp.DB.NewRecord(group); success == false {
-				utils.Indent(log.WithField("group", group).Debug)("create new group record failed")
-			}
-			if err := lp.DB.Create(&group).Error; err != nil {
-				return err
-			}
-
-			itemOrdering++
-			// Capture the group id of the folder root to be used for child items
-			folderRootParentID := groupID
-			for index, item := range items {
-
-				utils.DoubleIndent(log.WithField("item", item).Info)("item being added")
-
-				// Start a new folder page
+		if len(page.Folders) > 0 {
+			folderParentID := groupID
+			for fidx, folder := range page.Folders {
+				// create a new folder
 				groupID++
-
-				item := Item{
-					ID:       groupID,
-					UUID:     newUUID(),
-					Flags:    PageType,
-					ParentID: folderRootParentID,
-					Ordering: index,
+				err := lp.createNewFolder(folder.Name, fidx, groupID, folderParentID)
+				if err != nil {
+					return groupID, errors.Wrap(err, "createNewFolder")
 				}
 
-				if success := lp.DB.NewRecord(item); success == false {
-					utils.DoubleIndent(log.WithField("item", item).Debug)("create new item record failed")
-				}
-				if err := lp.DB.Create(&item).Error; err != nil {
-					return err
-				}
+				for _, fpage := range folder.Pages {
+					// create a new folder page
+					groupID++
+					if err := lp.createNewFolderPage(fpage.Number, groupID, rootParentID); err != nil {
+						return groupID, errors.Wrap(err, "createNewFolderPage")
+					}
 
-				group := Group{ID: groupID}
-
-				if success := lp.DB.NewRecord(group); success == false {
-					utils.Indent(log.WithField("group", group).Debug)("create new group record failed")
-				}
-				if err := lp.DB.Create(&group).Error; err != nil {
-					return err
+					// add all folder page items
+					if err := lp.updateItems(fpage.Items, groupID, rootParentID, itemType); err != nil {
+						return groupID, errors.Wrap(err, "createItems")
+					}
 				}
 			}
+		} else {
+			// add all the flat items
+			if err := lp.updateItems(page.FlatItems, groupID, rootParentID, itemType); err != nil {
+				return groupID, errors.Wrap(err, "createItems")
+			}
 		}
+	}
+
+	return groupID, nil
+}
+
+// EnableTriggers enables item update triggers
+func (lp *LaunchPad) EnableTriggers() error {
+
+	utils.Indent(log.Info)("enabling SQL update triggers")
+
+	if err := lp.DB.Exec("UPDATE dbinfo SET value = 0 WHERE key = 'ignore_items_update_triggers';").Error; err != nil {
+		return errors.Wrap(err, "counld not update `ignore_items_update_triggers` to 0")
 	}
 
 	return nil
@@ -189,18 +320,6 @@ func (lp *LaunchPad) DisableTriggers() error {
 
 	if err := lp.DB.Exec("UPDATE dbinfo SET value = 1 WHERE key = 'ignore_items_update_triggers';").Error; err != nil {
 		return errors.Wrap(err, "counld not update `ignore_items_update_triggers` to 1")
-	}
-
-	return nil
-}
-
-// EnableTriggers enables item update triggers
-func (lp *LaunchPad) EnableTriggers() error {
-
-	utils.Indent(log.Info)("enabling SQL update triggers")
-
-	if err := lp.DB.Exec("UPDATE dbinfo SET value = 0 WHERE key = 'ignore_items_update_triggers';").Error; err != nil {
-		return errors.Wrap(err, "counld not update `ignore_items_update_triggers` to 0")
 	}
 
 	return nil

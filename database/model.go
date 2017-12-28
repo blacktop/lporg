@@ -47,15 +47,15 @@ type Group struct {
 
 // Item - CREATE TABLE items (rowid INTEGER PRIMARY KEY ASC, uuid VARCHAR, flags INTEGER, type INTEGER, parent_id INTEGER NOT NULL, ordering INTEGER)
 type Item struct {
-	ID    int `gorm:"column:rowid;primary_key"`
-	App   App
-	UUID  string `gorm:"column:uuid"`
-	Flags int    `gorm:"column:flags;default:null"`
-	Type  int    `gorm:"column:type"`
-	// ParentID Group         `db:"parent_id"`
-	Group    Group `gorm:"ForeignKey:ParentID"`
-	ParentID int   `gorm:"not null;column:parent_id"`
-	Ordering int   `gorm:"column:ordering"`
+	ID       int    `gorm:"column:rowid;primary_key"`
+	App      App    `gorm:"ForeignKey:ID"`
+	Widget   Widget `gorm:"ForeignKey:ID"`
+	UUID     string `gorm:"column:uuid"`
+	Flags    int    `gorm:"column:flags;default:null"`
+	Type     int    `gorm:"column:type"`
+	Group    Group  `gorm:"ForeignKey:ParentID"`
+	ParentID int    `gorm:"not null;column:parent_id"`
+	Ordering int    `gorm:"column:ordering"`
 }
 
 // DBInfo - CREATE TABLE dbinfo (key VARCHAR, value VARCHAR)

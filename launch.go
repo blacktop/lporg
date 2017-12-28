@@ -156,7 +156,7 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 	}
 
 	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
-	groupID := math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID()))
+	groupID := int(math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID())))
 
 	// Read in Config file
 	config, err := database.LoadConfig(configFile)
@@ -164,10 +164,17 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 		log.WithError(err).Fatal("database.LoadConfig")
 	}
 
-	// Create App Folders
-	if err := lpad.CreateAppFolders(config, int(groupID)); err != nil {
-		log.WithError(err).Fatal("CreateAppFolders")
+	// Place Widgets
+	groupID, err = lpad.ApplyConfig(config.Widgets, database.WidgetType, groupID, 3)
+	if err != nil {
+		log.WithError(err).Fatal("ApplyConfig=>Widgets")
 	}
+	// Place Apps
+	groupID, err = lpad.ApplyConfig(config.Apps, database.ApplicationType, groupID, 1)
+	if err != nil {
+		log.WithError(err).Fatal("ApplyConfig=>Apps")
+	}
+
 	// Re-enable the update triggers
 	if err := lpad.EnableTriggers(); err != nil {
 		log.WithError(err).Fatal("EnableTriggers failed")
@@ -236,7 +243,7 @@ func main() {
 			Action: func(c *cli.Context) error {
 				if c.Args().Present() {
 					// user supplied launchpad config YAML
-					err := CmdLoadConfig(c.Bool("verbose"), c.Args().First())
+					err := CmdLoadConfig(c.GlobalBool("verbose"), c.Args().First())
 					if err != nil {
 						return err
 					}
