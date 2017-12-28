@@ -150,7 +150,9 @@ JSON
 
 - [x] swith to Apex log
 - [x] figure out how to write to DB and not just read :disappointed:
-- [ ] figure out why creating new groups is failing :confused: 
+- [x] figure out why creating new groups is failing :confused:
+- [ ] add Apps/Widgets not included in config to last page by default
+- [ ] add saving current config out to yaml/json
 - [ ] add ability to org dock as well `dorg` ? :wink:
 
 ## Issues

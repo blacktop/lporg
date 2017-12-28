@@ -25,8 +25,12 @@ setup: ## Install all the build and lint dependencies
 
 test: ## Run all the tests
 	scripts/reset.sh
-	go run *.go -V load launchpad.yaml
+	go run *.go load launchpad.yaml
 	# gotestcover $(TEST_OPTIONS) -covermode=atomic -coverprofile=coverage.txt $(SOURCE_FILES) -run $(TEST_PATTERN) -timeout=30s
+
+test.verbose: ## Run all the tests
+	scripts/reset.sh
+	go run *.go -V load launchpad.yaml
 
 cover: test ## Run all the tests and opens the coverage report
 	go tool cover -html=coverage.txt

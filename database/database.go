@@ -106,7 +106,8 @@ func (lp *LaunchPad) createNewPage(pageNumber, groupID, pageParentID int) error 
 	item := Item{
 		ID:       groupID,
 		UUID:     newUUID(),
-		Flags:    PageType,
+		Flags:    2,
+		Type:     PageType,
 		ParentID: pageParentID,
 		Ordering: pageNumber, // TODO: check if I should use 0 base index or 1 (what I'm doing now)
 	}
@@ -136,7 +137,8 @@ func (lp *LaunchPad) createNewFolder(folderName string, folderNumber, groupID, f
 	item := Item{
 		ID:       groupID,
 		UUID:     newUUID(),
-		Flags:    FolderRootType,
+		Flags:    0,
+		Type:     FolderRootType,
 		ParentID: folderParentID,
 		Ordering: folderNumber,
 	}
@@ -166,27 +168,28 @@ func (lp *LaunchPad) createNewFolder(folderName string, folderNumber, groupID, f
 }
 
 // createNewFolderPage creates a new folder page
-func (lp *LaunchPad) createNewFolderPage(folderPageNumber, groupID, rootParentID int) error {
+func (lp *LaunchPad) createNewFolderPage(folderPageNumber, groupID, folderPageParentID int) error {
 
 	item := Item{
 		ID:       groupID,
 		UUID:     newUUID(),
-		Flags:    PageType,
-		ParentID: groupID - 1,
+		Flags:    2,
+		Type:     PageType,
+		ParentID: folderPageParentID,
 		Ordering: folderPageNumber,
 	}
 
-	if !lp.DB.NewRecord(item) {
-		utils.DoubleIndent(log.WithField("item", item).Debug)("createNewFolderPage - create new item record failed")
-	}
+	// if !lp.DB.NewRecord(item) {
+	// 	utils.DoubleIndent(log.WithField("item", item).Debug)("createNewFolderPage - create new item record failed")
+	// }
 	if err := lp.DB.Create(&item).Error; err != nil {
 		return errors.Wrap(err, "createNewFolderPage")
 	}
 
 	group := Group{ID: groupID}
-	if !lp.DB.NewRecord(group) {
-		utils.Indent(log.WithField("group", group).Debug)("createNewFolderPage - create new group record failed")
-	}
+	// if !lp.DB.NewRecord(group) {
+	// 	utils.Indent(log.WithField("group", group).Debug)("createNewFolderPage - create new group record failed")
+	// }
 	if err := lp.DB.Create(&group).Error; err != nil {
 		return errors.Wrap(err, "createNewFolderPage")
 	}
@@ -195,7 +198,7 @@ func (lp *LaunchPad) createNewFolderPage(folderPageNumber, groupID, rootParentID
 }
 
 // updateItems will add the apps/widgets to the correct page/folder
-func (lp *LaunchPad) updateItems(items []string, groupID, rootParentID, itemType int) error {
+func (lp *LaunchPad) updateItems(items []string, groupID, itemType int) error {
 
 	var (
 		i Item
@@ -258,42 +261,46 @@ func (lp *LaunchPad) ApplyConfig(config Apps, itemType, groupID, rootParentID in
 
 	utils.Indent(log.Info)("creating app folders and adding apps to them")
 
-	pageParentID := groupID
 	for _, page := range config.Pages {
 		// create a new page
 		groupID++
-		err := lp.createNewPage(page.Number, groupID, pageParentID)
+		err := lp.createNewPage(page.Number, groupID, rootParentID)
 		if err != nil {
 			return groupID, errors.Wrap(err, "createNewPage")
 		}
 
+		pageParentID := groupID
+
+		if len(page.FlatItems) > 0 {
+			// add all the flat items
+			if err := lp.updateItems(page.FlatItems, pageParentID, itemType); err != nil {
+				return groupID, errors.Wrap(err, "createItems")
+			}
+		}
+
 		if len(page.Folders) > 0 {
-			folderParentID := groupID
 			for fidx, folder := range page.Folders {
 				// create a new folder
 				groupID++
-				err := lp.createNewFolder(folder.Name, fidx, groupID, folderParentID)
+				err := lp.createNewFolder(folder.Name, fidx, groupID, pageParentID)
 				if err != nil {
 					return groupID, errors.Wrap(err, "createNewFolder")
 				}
 
+				folderParentID := groupID
+
 				for _, fpage := range folder.Pages {
 					// create a new folder page
 					groupID++
-					if err := lp.createNewFolderPage(fpage.Number, groupID, rootParentID); err != nil {
+					if err := lp.createNewFolderPage(fpage.Number, groupID, folderParentID); err != nil {
 						return groupID, errors.Wrap(err, "createNewFolderPage")
 					}
 
 					// add all folder page items
-					if err := lp.updateItems(fpage.Items, groupID, rootParentID, itemType); err != nil {
+					if err := lp.updateItems(fpage.Items, groupID, itemType); err != nil {
 						return groupID, errors.Wrap(err, "createItems")
 					}
 				}
-			}
-		} else {
-			// add all the flat items
-			if err := lp.updateItems(page.FlatItems, groupID, rootParentID, itemType); err != nil {
-				return groupID, errors.Wrap(err, "createItems")
 			}
 		}
 	}
