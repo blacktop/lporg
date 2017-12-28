@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"sort"
 
 	"github.com/apex/log"
 	"github.com/blacktop/lporg/database/utils"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 )
-
-
 
 // Config is the Launchpad config
 type Config struct {
@@ -64,18 +63,18 @@ func LoadConfig(filename string) (Config, error) {
 	return conf, nil
 }
 
-// getMissing returns a list of the rest of the apps not in the config
-func (lp *LaunchPad) getMissing(apps Apps, appType int) ([]string, error) {
+// GetMissing returns a list of the rest of the apps not in the config
+func (lp *LaunchPad) GetMissing(apps Apps, appType int) ([]string, error) {
 
 	missing := []string{}
 	configApps := []string{}
 
 	// get all apps from config file
-	for _, page := range apps.Pages{
-		for _, item := page.FlatItems {
+	for _, page := range apps.Pages {
+		for _, item := range page.FlatItems {
 			configApps = append(configApps, item)
 		}
-		for _, folder := range page.Folders{
+		for _, folder := range page.Folders {
 			for _, fpage := range folder.Pages {
 				for _, fitem := range fpage.Items {
 					configApps = append(configApps, fitem)
@@ -86,18 +85,25 @@ func (lp *LaunchPad) getMissing(apps Apps, appType int) ([]string, error) {
 
 	switch appType {
 	case ApplicationType:
-		rows, err := db.Table("users").Select("users.name, emails.email").Joins("left join emails on emails.user_id = users.id").Rows()
-for rows.Next() {
-    if !utils.StringInSlice("test", configApps) {
-missing = append(missing, "test")
-	}
-}
+		var apps []App
+		err := lp.DB.Table("apps").Select("apps.item_id, apps.title").Joins("left join items on items.rowid = apps.item_id").Scan(&apps).Error
+		if err != nil {
+			return nil, err
+		}
+		for _, app := range apps {
+			if !utils.StringInSlice(app.Title, configApps) {
+				missing = utils.AppendIfMissing(missing, app.Title)
+			}
+		}
 	case WidgetType:
 		fallthrough
 	default:
-			utils.DoubleIndent(log.WithField("type", itemType).Error)("bad type")
+		utils.DoubleIndent(log.WithField("type", appType).Error)("bad type")
 	}
-	return sort.Strings(missing)
+
+	sort.Strings(missing)
+
+	return missing, nil
 }
 
 // ClearGroups clears out items related to groups

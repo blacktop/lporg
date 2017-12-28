@@ -117,17 +117,17 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 	tmpDir := os.Getenv("TMPDIR")
 	lpad.Folder = filepath.Join(tmpDir, "../0/com.apple.dock.launchpad/db")
 	lpad.File = filepath.Join(lpad.Folder, "db")
-	// launchpadDB = "./launchpad.db"
+	lpad.File = "./launchpad.db"
 	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
 		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal)("launchpad DB not found")
 	}
 	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
 
 	// start from a clean slate
-	err := removeOldDatabaseFiles(lpad.Folder)
-	if err != nil {
-		return err
-	}
+	// err := removeOldDatabaseFiles(lpad.Folder)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// open launchpad database
 	db, err := gorm.Open("sqlite3", lpad.File)
@@ -146,6 +146,7 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 	if err := lpad.DisableTriggers(); err != nil {
 		log.WithError(err).Fatal("DisableTriggers failed")
 	}
+
 	// Clear all items related to groups so we can re-create them
 	if err := lpad.ClearGroups(); err != nil {
 		log.WithError(err).Fatal("ClearGroups failed")
@@ -165,11 +166,14 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 	}
 
 	// Place Widgets
+	missing, err := lpad.GetMissing(config.Widgets, database.WidgetType)
+	fmt.Println(missing)
 	groupID, err = lpad.ApplyConfig(config.Widgets, database.WidgetType, groupID, 3)
 	if err != nil {
 		log.WithError(err).Fatal("ApplyConfig=>Widgets")
 	}
 	// Place Apps
+	missing, err = lpad.GetMissing(config.Apps, database.ApplicationType)
 	groupID, err = lpad.ApplyConfig(config.Apps, database.ApplicationType, groupID, 1)
 	if err != nil {
 		log.WithError(err).Fatal("ApplyConfig=>Apps")
