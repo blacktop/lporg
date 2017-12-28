@@ -230,8 +230,8 @@ JSON
 - [x] swith to Apex log
 - [x] figure out how to write to DB and not just read :disappointed:
 - [x] figure out why creating new groups is failing :confused:
-- [ ] add Apps/Widgets not included in config to last page by default
-- [ ] add saving current config out to yaml/json
+- [x] add Apps/Widgets not included in config to last page by default
+- [x] add saving current config out to yaml/json
 - [ ] add ability to have flat apps, then folder, then more flat apps on a page
 - [ ] add ability to org dock as well `dorg` ? :wink:
 
