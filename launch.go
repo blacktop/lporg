@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/apex/log"
@@ -38,7 +37,7 @@ func CmdDefaultOrg(verbose bool) error {
 	return nil
 }
 
-func parsePages(root int, parentMapping map[int][]database.Item) database.Apps {
+func parsePages(root int, parentMapping map[int][]database.Item) (database.Apps, error) {
 	var apps database.Apps
 
 	for pageNum, page := range parentMapping[root] {
@@ -46,8 +45,6 @@ func parsePages(root int, parentMapping map[int][]database.Item) database.Apps {
 		log.Infof("page number: %d", pageNum+1)
 
 		p := database.Page{Number: pageNum + 1}
-		f := database.Folder{}
-		fp := database.FolderPage{}
 
 		for _, item := range parentMapping[page.ID] {
 			switch item.Type {
@@ -58,28 +55,43 @@ func parsePages(root int, parentMapping map[int][]database.Item) database.Apps {
 				utils.Indent(log.WithField("title", item.Widget.Title).Info)("found widget")
 				p.FlatItems = append(p.FlatItems, item.Widget.Title)
 			case database.FolderRootType:
+
 				utils.Indent(log.WithField("title", item.Group.Title).Info)("found folder")
-				f.Name = item.Group.Title
-				fp.Number = 1
-				folderPageItem := parentMapping[item.ID][0]
-				for _, folder := range parentMapping[folderPageItem.ID] {
-					utils.DoubleIndent(log.WithField("title", folder.App.Title).Info)("found app")
-					fp.Items = append(fp.Items, folder.App.Title)
+
+				f := database.Folder{Name: item.Group.Title}
+
+				if len(parentMapping[item.ID]) < 1 {
+					return database.Apps{}, errors.New("did not find folder page item in page")
 				}
-				f.Pages = append(f.Pages, fp)
+
+				for fpIndex, fpage := range parentMapping[item.ID] {
+					utils.DoubleIndent(log.WithField("number", fpIndex+1).Info)("found folder page")
+
+					fp := database.FolderPage{Number: fpIndex + 1}
+
+					for _, folder := range parentMapping[fpage.ID] {
+						utils.TripleIndent(log.WithField("title", folder.App.Title).Info)("found app")
+						fp.Items = append(fp.Items, folder.App.Title)
+					}
+
+					f.Pages = append(f.Pages, fp)
+				}
+
+				if len(f.Pages) > 0 && len(f.Pages[0].Items) > 0 {
+					p.Folders = append(p.Folders, f)
+				} else {
+					utils.DoubleIndent(log.WithField("folder", item.Group.Title).Error)("empty folder")
+				}
+
 			case database.PageType:
-				utils.Indent(log.WithField("", item.Group.Title).Info)("found page")
+				utils.Indent(log.WithField("parent_id", item.ParentID).Info)("found page")
 			default:
 				utils.Indent(log.WithField("type", item.Type).Error)("found ?")
 			}
 		}
-
-		if len(f.Pages) > 0 {
-			p.Folders = append(p.Folders, f)
-		}
 		apps.Pages = append(apps.Pages, p)
 	}
-	return apps
+	return apps, nil
 }
 
 // CmdSaveConfig will save your launchpad settings to a config file
@@ -92,13 +104,11 @@ func CmdSaveConfig(verbose bool) error {
 	}
 
 	var (
-		launchpadRoot       int
-		dashboardRoot       int
-		launchpadRootPageID int
-		dashboardRootPageID int
-		items               []database.Item
-		dbinfo              []database.DBInfo
-		conf                database.Config
+		launchpadRoot int
+		dashboardRoot int
+		items         []database.Item
+		dbinfo        []database.DBInfo
+		conf          database.Config
 	)
 
 	// find launchpad database
@@ -137,6 +147,7 @@ func CmdSaveConfig(verbose bool) error {
 		}
 	}
 
+	// get all the relavent items
 	if err := db.Not("uuid in (?)", []string{"ROOTPAGE", "HOLDINGPAGE", "ROOTPAGE_DB", "HOLDINGPAGE_DB", "ROOTPAGE_VERS", "HOLDINGPAGE_VERS"}).
 		Order("items.parent_id, items.ordering").
 		Find(&items).Error; err != nil {
@@ -151,24 +162,20 @@ func CmdSaveConfig(verbose bool) error {
 		db.Model(&item).Related(&item.Widget)
 		db.Model(&item).Related(&item.Group)
 
-		if item.ParentID == launchpadRoot {
-			launchpadRootPageID = item.ID
-			utils.Indent(log.WithField("id", launchpadRootPageID).Info)("launchpad page found")
-		}
-
-		if item.ParentID == dashboardRoot {
-			dashboardRootPageID = item.ID
-			utils.Indent(log.WithField("id", dashboardRootPageID).Info)("dashboard page found")
-		}
-
 		parentMapping[item.ParentID] = append(parentMapping[item.ParentID], item)
 	}
 
 	log.Info("interating over launchpad pages")
-	conf.Apps = parsePages(launchpadRoot, parentMapping)
+	conf.Apps, err = parsePages(launchpadRoot, parentMapping)
+	if err != nil {
+		return errors.Wrap(err, "unable to parse launchpad pages")
+	}
 
 	log.Info("interating over dashboard pages")
-	conf.Widgets = parsePages(dashboardRoot, parentMapping)
+	conf.Widgets, err = parsePages(dashboardRoot, parentMapping)
+	if err != nil {
+		return errors.Wrap(err, "unable to parse dashboard pages")
+	}
 
 	// write out config YAML file
 	d, err := yaml.Marshal(&conf)
@@ -180,7 +187,7 @@ func CmdSaveConfig(verbose bool) error {
 		return errors.Wrap(err, "unable to write YAML")
 	}
 
-	log.Infof(bold, strings.ToUpper("successfully wrote launchpad.yaml"))
+	log.Infof(bold, "successfully wrote launchpad.yaml")
 
 	return nil
 }
