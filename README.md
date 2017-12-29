@@ -42,8 +42,6 @@ Commands:
 Run 'lporg COMMAND --help' for more information on a command.
 ```
 
-> **NOTE:** Tested on High Sierra
-
 ## Tested On
 
 - macOS 10.13.2 *(High Sierra)*
