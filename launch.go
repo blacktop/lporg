@@ -70,15 +70,16 @@ func CmdDefaultOrg(verbose bool) error {
 		db.LogMode(true)
 	}
 
+	// Clear all items related to groups so we can re-create them
+	if err := lpad.ClearGroups(); err != nil {
+		log.WithError(err).Fatal("ClearGroups failed")
+	}
+
 	// Disable the update triggers
 	if err := lpad.DisableTriggers(); err != nil {
 		log.WithError(err).Fatal("DisableTriggers failed")
 	}
 
-	// Clear all items related to groups so we can re-create them
-	if err := lpad.ClearGroups(); err != nil {
-		log.WithError(err).Fatal("ClearGroups failed")
-	}
 	// Add root and holding pages to items and groups
 	if err := lpad.AddRootsAndHoldingPages(); err != nil {
 		log.WithError(err).Fatal("AddRootsAndHoldingPagesfailed")
