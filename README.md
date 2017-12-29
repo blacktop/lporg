@@ -1,6 +1,6 @@
 ![logo](https://github.com/blacktop/lporg/raw/master/porg.jpeg)
 
-# lporg :construction: [WIP]
+# lporg
 
 [![Circle CI](https://circleci.com/gh/blacktop/lporg.png?style=shield)](https://circleci.com/gh/blacktop/lporg) [![GitHub release](https://img.shields.io/github/release/blacktop/lporg.svg)](https://github.com/https://github.com/blacktop/lporg/releases/releases) [![License](http://img.shields.io/:license-mit-blue.svg)](http://doge.mit-license.org)
 
@@ -44,186 +44,14 @@ Run 'lporg COMMAND --help' for more information on a command.
 
 > **NOTE:** Tested on High Sierra
 
+## Tested On
+
+- macOS 10.13.2 *(High Sierra)*
+
 ### Example Configs
 
-YAML
-
-```yaml
----
-apps:
-  pages:
-    - number: 1
-      flat_items:
-        - 1Password
-        - App Store
-        - Mail
-        - Calendar
-        - Maps
-        - Calculator
-        - Contacts
-        - System Preferences
-      folders:
-        - name: Other
-          pages:
-            - number: 1        
-              items:
-                - Automator
-                - Chess
-                - DVD Player
-                - Font Book
-                - Image Capture
-                - QuickTime Player
-                - Stickies
-                - TextEdit
-                - Time Machine
-                - Activity Monitor
-                - AirPort Utility
-                - Audio MIDI Setup
-                - Bluetooth File Exchange
-                - Boot Camp Assistant
-                - ColorSync Utility
-                - Console
-                - Digital Color Meter
-                - Disk Utility
-                - Grab
-                - Grapher
-                - Keychain Access
-                - LCC Connection Utility
-                - Logitech Unifying Software
-                - Migration Assistant
-                - Script Editor
-                - System Information
-                - Terminal
-                - VoiceOver Utility
-                - XQuartz     
-    - number: 2
-      folders:
-        - name: Porg
-          pages:
-            - number: 1        
-              items:
-                - Atom
-                - Brave
-                - iTerm
-                - Porgy Port
-    
-widgets:
-  pages:
-    - number: 1
-      flat_items:
-        - Web Clip
-        - Weather
-        - Unit Converter
-        - World Clock
-        - Calendar
-        - Calculator
-        - Dictionary
-        - Contacts
-        - Movies
-        - Stickies
-        - Stocks
-        - Tile Game
-```
-
-JSON
-
-```json
-{
-  "apps": {
-    "pages": [
-      {
-        "number": 1,
-        "flat_items": [
-          "1Password",
-          "App Store",
-          "Mail",
-          "Calendar",
-          "Maps",
-          "Calculator",
-          "Contacts",
-          "System Preferences"
-        ],
-        "folders": [
-          {
-            "name": "Other",
-            "pages": [
-              {
-                "number": 1,
-                "items": [
-                  "Automator",
-                  "Chess",
-                  "DVD Player",
-                  "Font Book",
-                  "Image Capture",
-                  "QuickTime Player",
-                  "Stickies",
-                  "TextEdit",
-                  "Time Machine",
-                  "Activity Monitor",
-                  "AirPort Utility",
-                  "Audio MIDI Setup",
-                  "Bluetooth File Exchange",
-                  "Boot Camp Assistant",
-                  "ColorSync Utility",
-                  "Console",
-                  "Digital Color Meter",
-                  "Disk Utility",
-                  "Grab",
-                  "Grapher",
-                  "Keychain Access",
-                  "LCC Connection Utility",
-                  "Logitech Unifying Software",
-                  "Migration Assistant",
-                  "Script Editor",
-                  "System Information",
-                  "Terminal",
-                  "VoiceOver Utility",
-                  "XQuartz"
-                ]
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "number": 2,
-        "folders": [
-          {
-            "name": "Porg",
-            "pages": [
-              {
-                "number": 1,
-                "items": ["Atom", "Brave", "iTerm", "Porgy Port"]
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  "widgets": {
-    "pages": [
-      {
-        "number": 1,
-        "flat_items": [
-          "Web Clip",
-          "Weather",
-          "Unit Converter",
-          "World Clock",
-          "Calendar",
-          "Calculator",
-          "Dictionary",
-          "Contacts",
-          "Movies",
-          "Stickies",
-          "Stocks",
-          "Tile Game"
-        ]
-      }
-    ]
-  }
-}
-```
+- [YAML](https://github.com/blacktop/lporg/blob/master/examples/launchpad.yaml)
+- [JSON](https://github.com/blacktop/lporg/blob/master/examples/launchpad.json)
 
 ## TODO
 
