@@ -90,6 +90,7 @@ Load a launchpad app layout from a YAML config file
 - [ ] add ability to save/load JSON as well as YAML
 - [x] fix issue where if no files for a folder are installed don't create that folder (might cause eventual DB coruption)
 - [ ] add ability to org dock as well `dorg` ? :wink:
+- [ ] backup current launchpad layout before changing
 
 ## Issues
 

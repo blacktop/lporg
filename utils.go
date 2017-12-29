@@ -118,10 +118,12 @@ func removeOldDatabaseFiles(dbpath string) error {
 	}
 
 	for _, path := range paths {
-		if err := os.Remove(path); err != nil {
-			return errors.Wrap(err, "removing file failed")
+		if _, err := os.Stat(path); os.IsExist(err) {
+			if err := os.Remove(path); err != nil {
+				return errors.Wrap(err, "removing file failed")
+			}
+			utils.DoubleIndent(log.WithField("path", path).Info)("removed old file")
 		}
-		utils.DoubleIndent(log.WithField("path", path).Info)("removed old file")
 	}
 
 	return restartDock()
