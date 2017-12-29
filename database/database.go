@@ -244,6 +244,7 @@ func (lp *LaunchPad) updateItems(items []string, groupID, itemType int) error {
 			ID:       i.ID,
 			UUID:     i.UUID,
 			Flags:    i.Flags,
+			Type:     itemType,
 			ParentID: groupID,
 			Ordering: iidx,
 		}
