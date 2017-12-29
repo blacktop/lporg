@@ -12,6 +12,10 @@
 
 This project is meant to help people setting up a brand new Mac **or** to keep all of their `Launchpad Folders` in sync across devices.
 
+## Tested On
+
+- `macOS 10.13.2` *(High Sierra)*
+
 ## Install
 
 ```sh
@@ -42,9 +46,31 @@ Commands:
 Run 'lporg COMMAND --help' for more information on a command.
 ```
 
-## Tested On
+## Features
 
-- macOS 10.13.2 *(High Sierra)*
+### Default
+
+```sh
+$ lporg default
+```
+
+Organize your launchpad apps using the default Apple app categories as folders
+
+### Save
+
+```sh
+$ lporg save
+```
+
+Save your current launchpad app layout to a `launchpad.yaml` file
+
+### Load
+
+```sh
+$ lporg load launchpad.yaml
+```
+
+Load a launchpad app layout from a YAML config file
 
 ### Example Configs
 

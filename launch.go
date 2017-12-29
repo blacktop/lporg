@@ -300,7 +300,7 @@ func CmdSaveConfig(verbose bool) error {
 		return errors.Wrap(err, "unable to marshall YAML")
 	}
 
-	if err = ioutil.WriteFile("launchpad-save.yaml", d, 0644); err != nil {
+	if err = ioutil.WriteFile("launchpad.yaml", d, 0644); err != nil {
 		return errors.Wrap(err, "unable to write YAML")
 	}
 
