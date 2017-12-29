@@ -32,6 +32,82 @@ var (
 	lpad database.LaunchPad
 )
 
+// add missing apps to pages at 30 apps per page
+func parseMissing(missing []string, pages []database.Page) []database.Page {
+	if len(missing) > 0 {
+		for _, chunk := range split(missing, 30) {
+			p := database.Page{
+				Number: len(pages) + 1,
+			}
+			p.FlatItems = chunk
+			pages = append(pages, p)
+			for _, smallerChunk := range split(chunk, 5) {
+				msg := fmt.Sprintf("adding missing apps to page=%d", p.Number)
+				utils.DoubleIndent(log.WithField("apps", smallerChunk).Warn)(msg)
+			}
+		}
+	}
+
+	return pages
+}
+
+func parsePages(root int, parentMapping map[int][]database.Item) (database.Apps, error) {
+	var apps database.Apps
+
+	for pageNum, page := range parentMapping[root] {
+
+		log.Infof("page number: %d", pageNum+1)
+
+		p := database.Page{Number: pageNum + 1}
+
+		for _, item := range parentMapping[page.ID] {
+			switch item.Type {
+			case database.ApplicationType:
+				utils.Indent(log.WithField("title", item.App.Title).Info)("found app")
+				p.FlatItems = append(p.FlatItems, item.App.Title)
+			case database.WidgetType:
+				utils.Indent(log.WithField("title", item.Widget.Title).Info)("found widget")
+				p.FlatItems = append(p.FlatItems, item.Widget.Title)
+			case database.FolderRootType:
+
+				utils.Indent(log.WithField("title", item.Group.Title).Info)("found folder")
+
+				f := database.Folder{Name: item.Group.Title}
+
+				if len(parentMapping[item.ID]) < 1 {
+					return database.Apps{}, errors.New("did not find folder page item in page")
+				}
+
+				for fpIndex, fpage := range parentMapping[item.ID] {
+					utils.DoubleIndent(log.WithField("number", fpIndex+1).Info)("found folder page")
+
+					fp := database.FolderPage{Number: fpIndex + 1}
+
+					for _, folder := range parentMapping[fpage.ID] {
+						utils.TripleIndent(log.WithField("title", folder.App.Title).Info)("found app")
+						fp.Items = append(fp.Items, folder.App.Title)
+					}
+
+					f.Pages = append(f.Pages, fp)
+				}
+
+				if len(f.Pages) > 0 && len(f.Pages[0].Items) > 0 {
+					p.Folders = append(p.Folders, f)
+				} else {
+					utils.DoubleIndent(log.WithField("folder", item.Group.Title).Error)("empty folder")
+				}
+
+			case database.PageType:
+				utils.Indent(log.WithField("parent_id", item.ParentID).Info)("found page")
+			default:
+				utils.Indent(log.WithField("type", item.Type).Error)("found ?")
+			}
+		}
+		apps.Pages = append(apps.Pages, p)
+	}
+	return apps, nil
+}
+
 // CmdDefaultOrg will organize your launchpad by the app default categories
 func CmdDefaultOrg(verbose bool) error {
 
@@ -155,63 +231,6 @@ func CmdDefaultOrg(verbose bool) error {
 	return restartDock()
 }
 
-func parsePages(root int, parentMapping map[int][]database.Item) (database.Apps, error) {
-	var apps database.Apps
-
-	for pageNum, page := range parentMapping[root] {
-
-		log.Infof("page number: %d", pageNum+1)
-
-		p := database.Page{Number: pageNum + 1}
-
-		for _, item := range parentMapping[page.ID] {
-			switch item.Type {
-			case database.ApplicationType:
-				utils.Indent(log.WithField("title", item.App.Title).Info)("found app")
-				p.FlatItems = append(p.FlatItems, item.App.Title)
-			case database.WidgetType:
-				utils.Indent(log.WithField("title", item.Widget.Title).Info)("found widget")
-				p.FlatItems = append(p.FlatItems, item.Widget.Title)
-			case database.FolderRootType:
-
-				utils.Indent(log.WithField("title", item.Group.Title).Info)("found folder")
-
-				f := database.Folder{Name: item.Group.Title}
-
-				if len(parentMapping[item.ID]) < 1 {
-					return database.Apps{}, errors.New("did not find folder page item in page")
-				}
-
-				for fpIndex, fpage := range parentMapping[item.ID] {
-					utils.DoubleIndent(log.WithField("number", fpIndex+1).Info)("found folder page")
-
-					fp := database.FolderPage{Number: fpIndex + 1}
-
-					for _, folder := range parentMapping[fpage.ID] {
-						utils.TripleIndent(log.WithField("title", folder.App.Title).Info)("found app")
-						fp.Items = append(fp.Items, folder.App.Title)
-					}
-
-					f.Pages = append(f.Pages, fp)
-				}
-
-				if len(f.Pages) > 0 && len(f.Pages[0].Items) > 0 {
-					p.Folders = append(p.Folders, f)
-				} else {
-					utils.DoubleIndent(log.WithField("folder", item.Group.Title).Error)("empty folder")
-				}
-
-			case database.PageType:
-				utils.Indent(log.WithField("parent_id", item.ParentID).Info)("found page")
-			default:
-				utils.Indent(log.WithField("type", item.Type).Error)("found ?")
-			}
-		}
-		apps.Pages = append(apps.Pages, p)
-	}
-	return apps, nil
-}
-
 // CmdSaveConfig will save your launchpad settings to a config file
 func CmdSaveConfig(verbose bool) error {
 
@@ -310,25 +329,6 @@ func CmdSaveConfig(verbose bool) error {
 	return nil
 }
 
-// add missing apps to pages at 30 apps per page
-func parseMissing(missing []string, pages []database.Page) []database.Page {
-	if len(missing) > 0 {
-		for _, chunk := range split(missing, 30) {
-			p := database.Page{
-				Number: len(pages) + 1,
-			}
-			p.FlatItems = chunk
-			pages = append(pages, p)
-			for _, smallerChunk := range split(chunk, 5) {
-				msg := fmt.Sprintf("adding missing apps to page=%d", p.Number)
-				utils.DoubleIndent(log.WithField("apps", smallerChunk).Warn)(msg)
-			}
-		}
-	}
-
-	return pages
-}
-
 // CmdLoadConfig will load your launchpad settings from a config file
 func CmdLoadConfig(verbose bool, configFile string) error {
 
@@ -373,15 +373,16 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 		db.LogMode(true)
 	}
 
+	// Clear all items related to groups so we can re-create them
+	if err := lpad.ClearGroups(); err != nil {
+		log.WithError(err).Fatal("ClearGroups failed")
+	}
+
 	// Disable the update triggers
 	if err := lpad.DisableTriggers(); err != nil {
 		log.WithError(err).Fatal("DisableTriggers failed")
 	}
 
-	// Clear all items related to groups so we can re-create them
-	if err := lpad.ClearGroups(); err != nil {
-		log.WithError(err).Fatal("ClearGroups failed")
-	}
 	// Add root and holding pages to items and groups
 	if err := lpad.AddRootsAndHoldingPages(); err != nil {
 		log.WithError(err).Fatal("AddRootsAndHoldingPagesfailed")
@@ -435,23 +436,6 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 func init() {
 	log.SetHandler(clihander.Default)
 }
-
-var appHelpTemplate = `Usage: {{.Name}} {{if .Flags}}[OPTIONS] {{end}}COMMAND [arg...]
-
-{{.Usage}}
-
-Version: {{.Version}}{{if or .Author .Email}}
-Author:{{if .Author}} {{.Author}}{{if .Email}} - <{{.Email}}>{{end}}{{else}}
-  {{.Email}}{{end}}{{end}}
-{{if .Flags}}
-Options:
-  {{range .Flags}}{{.}}
-  {{end}}{{end}}
-Commands:
-  {{range .Commands}}{{.Name}}{{with .ShortName}}, {{.}}{{end}}{{ "\t" }}{{.Usage}}
-  {{end}}
-Run '{{.Name}} COMMAND --help' for more information on a command.
-`
 
 func main() {
 
