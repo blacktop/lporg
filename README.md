@@ -87,6 +87,7 @@ Load a launchpad app layout from a YAML config file
 - [x] save is still broken (maybe because of empty folder)
 - [ ] add ability to have flat apps, then folder, then more flat apps on a page
 - [ ] create Brewfile from unfound apps IF they are installable via brew?
+- [ ] add ability to save/load JSON as well as YAML
 - [x] fix issue where if no files for a folder are installed don't create that folder (might cause eventual DB coruption)
 - [ ] add ability to org dock as well `dorg` ? :wink:
 
