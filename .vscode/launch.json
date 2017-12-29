@@ -28,6 +28,18 @@
                 "-V",
                 "save"
             ]
-        }        
+        },
+        {
+            "name": "Default",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "showLog": false,
+            "program": "${workspaceRoot}",
+            "args": [
+                "-V",
+                "default"
+            ]
+        }
     ]
 }

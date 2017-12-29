@@ -32,6 +32,10 @@ test.save: ## Run all the tests
 	@test -f launchpad.db || scripts/copy.sh
 	@go run *.go save
 
+test.default: ## Run the default test
+	@scripts/reset.sh
+	@go run *.go default
+
 test.verbose: ## Run all the tests
 	@scripts/reset.sh
 	@go run *.go -V load launchpad.yaml

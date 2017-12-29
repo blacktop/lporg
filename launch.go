@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/apex/log"
@@ -33,8 +34,124 @@ var (
 
 // CmdDefaultOrg will organize your launchpad by the app default categories
 func CmdDefaultOrg(verbose bool) error {
-	log.Info("IMPLIMENT DEFAULT ORG HERE <=================")
-	return nil
+
+	log.Infof(bold, "USING DEFAULT LAUNCHPAD ORGANIZATION")
+
+	if verbose {
+		log.SetLevel(log.DebugLevel)
+	}
+
+	// find launchpad database
+	tmpDir := os.Getenv("TMPDIR")
+	lpad.Folder = filepath.Join(tmpDir, "../0/com.apple.dock.launchpad/db")
+	lpad.File = filepath.Join(lpad.Folder, "db")
+	// lpad.File = "./launchpad.db"
+	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
+		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal)("launchpad DB not found")
+	}
+	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
+
+	// start from a clean slate
+	err := removeOldDatabaseFiles(lpad.Folder)
+	if err != nil {
+		return err
+	}
+
+	// open launchpad database
+	db, err := gorm.Open("sqlite3", lpad.File)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	lpad.DB = db
+
+	if verbose {
+		db.LogMode(true)
+	}
+
+	// Disable the update triggers
+	if err := lpad.DisableTriggers(); err != nil {
+		log.WithError(err).Fatal("DisableTriggers failed")
+	}
+
+	// Clear all items related to groups so we can re-create them
+	if err := lpad.ClearGroups(); err != nil {
+		log.WithError(err).Fatal("ClearGroups failed")
+	}
+	// Add root and holding pages to items and groups
+	if err := lpad.AddRootsAndHoldingPages(); err != nil {
+		log.WithError(err).Fatal("AddRootsAndHoldingPagesfailed")
+	}
+
+	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
+	groupID := int(math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID())))
+
+	utils.Indent(log.Info)("creating folders out of app categories")
+
+	// Create default config file
+	var apps []database.App
+	var categories []database.Category
+	var conf database.Config
+
+	page := database.Page{Number: 1}
+
+	if err := db.Find(&categories).Error; err != nil {
+		log.WithError(err).Error("categories query failed")
+	}
+
+	for _, category := range categories {
+		folderName := strings.Title(strings.Replace(strings.TrimPrefix(category.UTI, "public.app-category."), "-", " ", 1))
+		folder := database.Folder{Name: folderName}
+		folderPage := database.FolderPage{Number: 1}
+		utils.DoubleIndent(log.WithField("folder", folderName).Info)("adding folder")
+		if err := db.Where("category_id = ?", category.ID).Find(&apps).Error; err != nil {
+			log.WithError(err).Error("categories query failed")
+		}
+		for _, app := range apps {
+			utils.TripleIndent(log.WithField("app", app.Title).Info)("adding app to category folder")
+			folderPage.Items = utils.AppendIfMissing(folderPage.Items, app.Title)
+		}
+		folder.Pages = append(folder.Pages, folderPage)
+		page.Folders = append(page.Folders, folder)
+	}
+
+	conf.Apps.Pages = append(conf.Apps.Pages, page)
+
+	////////////////////////////////////////////////////////////////////
+	// Place Widgets ///////////////////////////////////////////////////
+	utils.Indent(log.Info)("creating Widget folders and adding widgets to them")
+	missing, err := lpad.GetMissing(conf.Widgets, database.WidgetType)
+	if err != nil {
+		log.WithError(err).Fatal("Default GetMissing=>Widgets")
+	}
+
+	conf.Widgets.Pages = parseMissing(missing, conf.Widgets.Pages)
+	groupID, err = lpad.ApplyConfig(conf.Widgets, database.WidgetType, groupID, 3)
+	if err != nil {
+		log.WithError(err).Fatal("Default ApplyConfig=>Widgets")
+	}
+
+	/////////////////////////////////////////////////////////////////////
+	// Place Apps ///////////////////////////////////////////////////////
+	utils.Indent(log.Info)("creating App folders and adding apps to them")
+	missing, err = lpad.GetMissing(conf.Apps, database.ApplicationType)
+	if err != nil {
+		log.WithError(err).Fatal("Default GetMissing=>Apps")
+	}
+
+	conf.Apps.Pages = parseMissing(missing, conf.Apps.Pages)
+	groupID, err = lpad.ApplyConfig(conf.Apps, database.ApplicationType, groupID, 1)
+	if err != nil {
+		log.WithError(err).Fatal("Default ApplyConfig==>Apps")
+	}
+
+	// Re-enable the update triggers
+	if err := lpad.EnableTriggers(); err != nil {
+		log.WithError(err).Fatal("EnableTriggers failed")
+	}
+
+	return restartDock()
 }
 
 func parsePages(root int, parentMapping map[int][]database.Item) (database.Apps, error) {
@@ -201,7 +318,7 @@ func parseMissing(missing []string, pages []database.Page) []database.Page {
 			}
 			p.FlatItems = chunk
 			pages = append(pages, p)
-			for _, smallerChunk := range split(chunk, 6) {
+			for _, smallerChunk := range split(chunk, 5) {
 				msg := fmt.Sprintf("adding missing apps to page=%d", p.Number)
 				utils.DoubleIndent(log.WithField("apps", smallerChunk).Warn)(msg)
 			}
