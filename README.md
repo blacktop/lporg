@@ -25,7 +25,7 @@ Usage: lporg [OPTIONS] COMMAND [arg...]
 
 Organize Your Launchpad
 
-Version: , BuildTime:
+Version: 17.12.4, BuildTime: 20171229
 Author: blacktop - <https://github.com/blacktop>
 
 Options:
@@ -34,9 +34,9 @@ Options:
   --version, -v  print the version
 
 Commands:
-  default  Organize by Categories
-  save     Save Current Launchpad App Config
-  load     Load Launchpad App Config From File
+  default  organize by default app categories
+  save     save current launchpad settings
+  load     load launchpad settings config from `FILE`
   help     Shows a list of commands or help for one command
 
 Run 'lporg COMMAND --help' for more information on a command.

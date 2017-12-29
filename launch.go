@@ -343,8 +343,9 @@ func main() {
 	app.Name = "lporg"
 	app.Author = "blacktop"
 	app.Email = "https://github.com/blacktop"
-	app.Version = Version + ", BuildTime: " + BuildTime
-	app.Compiled, _ = time.Parse("20060102", BuildTime)
+	complTime, _ := time.Parse(time.RFC3339, BuildTime)
+	app.Version = Version + ", BuildTime: " + complTime.Format("20060102")
+	app.Compiled = complTime
 	app.Usage = "Organize Your Launchpad"
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
