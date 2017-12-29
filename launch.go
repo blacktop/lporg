@@ -39,7 +39,14 @@ func parseMissing(missing []string, pages []database.Page) []database.Page {
 			p := database.Page{
 				Number: len(pages) + 1,
 			}
-			p.FlatItems = chunk
+
+			// because you can't assign a []string to an []interface{} we must copy in one at a time
+			chunkInterface := make([]interface{}, len(chunk))
+			for i, v := range chunk {
+				chunkInterface[i] = v
+			}
+
+			p.Items = chunkInterface
 			pages = append(pages, p)
 			for _, smallerChunk := range split(chunk, 5) {
 				msg := fmt.Sprintf("adding missing apps to page=%d", p.Number)
@@ -64,15 +71,15 @@ func parsePages(root int, parentMapping map[int][]database.Item) (database.Apps,
 			switch item.Type {
 			case database.ApplicationType:
 				utils.Indent(log.WithField("title", item.App.Title).Info)("found app")
-				p.FlatItems = append(p.FlatItems, item.App.Title)
+				p.Items = append(p.Items, item.App.Title)
 			case database.WidgetType:
 				utils.Indent(log.WithField("title", item.Widget.Title).Info)("found widget")
-				p.FlatItems = append(p.FlatItems, item.Widget.Title)
+				p.Items = append(p.Items, item.Widget.Title)
 			case database.FolderRootType:
 
 				utils.Indent(log.WithField("title", item.Group.Title).Info)("found folder")
 
-				f := database.Folder{Name: item.Group.Title}
+				f := database.AppFolder{Name: item.Group.Title}
 
 				if len(parentMapping[item.ID]) < 1 {
 					return database.Apps{}, errors.New("did not find folder page item in page")
@@ -92,7 +99,7 @@ func parsePages(root int, parentMapping map[int][]database.Item) (database.Apps,
 				}
 
 				if len(f.Pages) > 0 && len(f.Pages[0].Items) > 0 {
-					p.Folders = append(p.Folders, f)
+					p.Items = append(p.Items, f)
 				} else {
 					utils.DoubleIndent(log.WithField("folder", item.Group.Title).Error)("empty folder")
 				}
@@ -179,7 +186,7 @@ func CmdDefaultOrg(verbose bool) error {
 
 	for _, category := range categories {
 		folderName := strings.Title(strings.Replace(strings.TrimPrefix(category.UTI, "public.app-category."), "-", " ", 1))
-		folder := database.Folder{Name: folderName}
+		folder := database.AppFolder{Name: folderName}
 		folderPage := database.FolderPage{Number: 1}
 		utils.DoubleIndent(log.WithField("folder", folderName).Info)("adding folder")
 		if err := db.Where("category_id = ?", category.ID).Find(&apps).Error; err != nil {
@@ -190,7 +197,7 @@ func CmdDefaultOrg(verbose bool) error {
 			folderPage.Items = utils.AppendIfMissing(folderPage.Items, app.Title)
 		}
 		folder.Pages = append(folder.Pages, folderPage)
-		page.Folders = append(page.Folders, folder)
+		page.Items = append(page.Items, folder)
 	}
 
 	conf.Apps.Pages = append(conf.Apps.Pages, page)
@@ -348,7 +355,7 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 	tmpDir := os.Getenv("TMPDIR")
 	lpad.Folder = filepath.Join(tmpDir, "../0/com.apple.dock.launchpad/db")
 	lpad.File = filepath.Join(lpad.Folder, "db")
-	// lpad.File = "./launchpad.db"
+	// lpad.File = "./launchpad-test.db"
 	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
 		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal)("launchpad DB not found")
 	}

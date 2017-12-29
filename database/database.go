@@ -8,6 +8,7 @@ import (
 
 	"github.com/apex/log"
 	"github.com/blacktop/lporg/database/utils"
+	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 )
 
@@ -19,13 +20,20 @@ func (lp *LaunchPad) GetMissing(apps Apps, appType int) ([]string, error) {
 
 	// get all apps from config file
 	for _, page := range apps.Pages {
-		for _, item := range page.FlatItems {
-			appsFromConfig = append(appsFromConfig, item)
-		}
-		for _, folder := range page.Folders {
-			for _, fpage := range folder.Pages {
-				for _, fitem := range fpage.Items {
-					appsFromConfig = append(appsFromConfig, fitem)
+		for _, item := range page.Items {
+			switch item.(type) {
+			case string:
+				appsFromConfig = append(appsFromConfig, item.(string))
+			default:
+				var folder AppFolder
+				if err := mapstructure.Decode(item, &folder); err != nil {
+					return nil, errors.Wrap(err, "mapstructure unable to decode config folder")
+				}
+
+				for _, fpage := range folder.Pages {
+					for _, fitem := range fpage.Items {
+						appsFromConfig = append(appsFromConfig, fitem)
+					}
 				}
 			}
 		}
@@ -200,8 +208,8 @@ func (lp *LaunchPad) createNewFolderPage(folderPageNumber, groupID, folderPagePa
 	return nil
 }
 
-// updateItems will add the apps/widgets to the correct page/folder
-func (lp *LaunchPad) updateItems(items []string, groupID, itemType int) error {
+// updateItem will add the apps/widgets to the correct page/folder
+func (lp *LaunchPad) updateItem(item string, ordering, groupID, itemType int) error {
 
 	var (
 		i Item
@@ -209,55 +217,46 @@ func (lp *LaunchPad) updateItems(items []string, groupID, itemType int) error {
 		w Widget
 	)
 
-	for iidx, item := range items {
+	i = Item{}
+	a = App{}
+	w = Widget{}
 
-		i = Item{}
-		a = App{}
-		w = Widget{}
-
-		switch itemType {
-		case ApplicationType:
-			if lp.DB.Where("title = ?", item).First(&a).RecordNotFound() {
-				utils.DoubleIndent(log.WithField("app", item).Warn)("app not installed. SKIPPING...")
-				continue
-			}
-			if err := lp.DB.Where("rowid = ?", a.ID).First(&i).Error; err != nil {
-				return errors.Wrap(err, "createItems")
-			}
-
-			lp.DB.Model(&i).Related(&i.App)
-		case WidgetType:
-			if lp.DB.Where("title = ?", item).First(&w).RecordNotFound() {
-				utils.DoubleIndent(log.WithField("app", item).Warn)("widget not installed. SKIPPING...")
-				continue
-			}
-			if err := lp.DB.Where("rowid = ?", w.ID).First(&i).Error; err != nil {
-				return errors.Wrap(err, "createItems")
-			}
-
-			lp.DB.Model(&i).Related(&i.Widget)
-		default:
-			utils.DoubleIndent(log.WithField("type", itemType).Error)("bad type")
+	switch itemType {
+	case ApplicationType:
+		if lp.DB.Where("title = ?", item).First(&a).RecordNotFound() {
+			utils.DoubleIndent(log.WithField("app", item).Warn)("app not installed. SKIPPING...")
+		}
+		if err := lp.DB.Where("rowid = ?", a.ID).First(&i).Error; err != nil {
+			return errors.Wrap(err, "createItems")
 		}
 
-		newItem := Item{
-			ID:       i.ID,
-			UUID:     i.UUID,
-			Flags:    i.Flags,
-			Type:     itemType,
-			ParentID: groupID,
-			Ordering: iidx,
+		lp.DB.Model(&i).Related(&i.App)
+	case WidgetType:
+		if lp.DB.Where("title = ?", item).First(&w).RecordNotFound() {
+			utils.DoubleIndent(log.WithField("app", item).Warn)("widget not installed. SKIPPING...")
+		}
+		if err := lp.DB.Where("rowid = ?", w.ID).First(&i).Error; err != nil {
+			return errors.Wrap(err, "createItems")
 		}
 
-		// if !lp.DB.NewRecord(newItem) {
-		// 	utils.DoubleIndent(log.WithField("item", newItem).Debug)("createItems - create new item record failed")
-		// }
-		if err := lp.DB.Save(&newItem).Error; err != nil {
-			return err
-		}
+		lp.DB.Model(&i).Related(&i.Widget)
+	default:
+		utils.DoubleIndent(log.WithField("type", itemType).Error)("bad type")
 	}
 
-	return nil
+	newItem := Item{
+		ID:       i.ID,
+		UUID:     i.UUID,
+		Flags:    i.Flags,
+		Type:     itemType,
+		ParentID: groupID,
+		Ordering: ordering,
+	}
+
+	// if !lp.DB.NewRecord(newItem) {
+	// 	utils.DoubleIndent(log.WithField("item", newItem).Debug)("createItems - create new item record failed")
+	// }
+	return lp.DB.Save(&newItem).Error
 }
 
 // ApplyConfig places all the launchpad apps
@@ -273,18 +272,22 @@ func (lp *LaunchPad) ApplyConfig(config Apps, itemType, groupID, rootParentID in
 
 		pageParentID := groupID
 
-		if len(page.FlatItems) > 0 {
-			// add all the flat items
-			if err := lp.updateItems(page.FlatItems, pageParentID, itemType); err != nil {
-				return groupID, errors.Wrap(err, "createItems")
-			}
-		}
+		for idx, item := range page.Items {
+			switch item.(type) {
+			case string:
+				// add a flat item
+				if err := lp.updateItem(item.(string), idx, pageParentID, itemType); err != nil {
+					return groupID, errors.Wrap(err, "createItems")
+				}
+			default:
+				var folder AppFolder
+				if err := mapstructure.Decode(item, &folder); err != nil {
+					return groupID, errors.Wrap(err, "mapstructure unable to decode config folder")
+				}
 
-		if len(page.Folders) > 0 {
-			for fidx, folder := range page.Folders {
 				// create a new folder
 				groupID++
-				err := lp.createNewFolder(folder.Name, fidx, groupID, pageParentID)
+				err := lp.createNewFolder(folder.Name, idx, groupID, pageParentID)
 				if err != nil {
 					return groupID, errors.Wrap(err, "createNewFolder")
 				}
@@ -299,8 +302,10 @@ func (lp *LaunchPad) ApplyConfig(config Apps, itemType, groupID, rootParentID in
 					}
 
 					// add all folder page items
-					if err := lp.updateItems(fpage.Items, groupID, itemType); err != nil {
-						return groupID, errors.Wrap(err, "createItems")
+					for fidx, fitem := range fpage.Items {
+						if err := lp.updateItem(fitem, fidx, groupID, itemType); err != nil {
+							return groupID, errors.Wrap(err, "createItems")
+						}
 					}
 				}
 			}

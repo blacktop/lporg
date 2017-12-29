@@ -1,0 +1,38 @@
+apps:
+  pages:
+    - number: 1
+      items:
+      - 1Password
+      - App Store
+      - Mail
+      - Calendar
+      - folder: PORG
+        pages:
+        - number: 1
+          items:
+            - Messages
+            - FaceTime
+            - Slack
+            - Tweetbot
+            - Twitter
+widgets:
+  pages:
+    - number: 1
+      items:  
+      - Web Clip
+      - Weather
+      - Unit Converter
+      - World Clock
+      - Calendar
+      - Calculator
+      - Dictionary
+      - Contacts
+      - Movies
+      - Stickies
+      - Stocks
+      - Tile Game
+dock_items:
+  - Siri
+  - Safari
+  - _____
+  - Safari

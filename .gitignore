@@ -20,3 +20,4 @@ lporg
 dist/
 *.csv
 launchpad-save.yaml
+launchpad.yaml

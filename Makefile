@@ -23,6 +23,7 @@ setup: ## Install all the build and lint dependencies
 	dep ensure
 	gometalinter --install
 
+.PHONY: test
 test: ## Run all the tests
 	@scripts/reset.sh
 	@go run *.go load launchpad.yaml
