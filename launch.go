@@ -14,6 +14,7 @@ import (
 	clihander "github.com/apex/log/handlers/cli"
 	"github.com/blacktop/lporg/database"
 	"github.com/blacktop/lporg/database/utils"
+	"github.com/blacktop/lporg/dock"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/pkg/errors"
@@ -320,6 +321,16 @@ func CmdSaveConfig(verbose bool, configFile string) error {
 	conf.Widgets, err = parsePages(dashboardRoot, parentMapping)
 	if err != nil {
 		return errors.Wrap(err, "unable to parse dashboard pages")
+	}
+
+	log.Info("interating over dock apps")
+	dPlist, err := dock.LoadDockPlist()
+	for _, item := range dPlist.PersistentApps {
+		conf.DockItems = append(conf.DockItems, item.TileData.FileLabel)
+	}
+	conf.DockItems = append(conf.DockItems, "============")
+	for _, item := range dPlist.PersistentOthers {
+		conf.DockItems = append(conf.DockItems, item.TileData.FileLabel)
 	}
 
 	// write out config YAML file

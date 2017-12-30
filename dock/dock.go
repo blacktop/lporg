@@ -1,4 +1,4 @@
-package main
+package dock
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 	plist "github.com/DHowett/go-plist"
 )
 
-// DockPlist is a dock plist object
-type DockPlist struct {
+// Plist is a dock plist object
+type Plist struct {
 	PersistentApps              []PAItem `plist:"persistent-apps"`
 	PersistentOthers            []POItem `plist:"persistent-others"`
 	AutoHide                    bool     `plist:"autohide"`
@@ -78,26 +78,39 @@ type FileData struct {
 	URLStringType int    `plist:"_CFURLStringType"`
 }
 
-func main() {
+// LoadDockPlist loads the dock plist into struct
+func LoadDockPlist() (Plist, error) {
 
+	var dPlist Plist
+
+	// get current user
 	user, err := user.Current()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	dockPlist := filepath.Join(user.HomeDir, "/Library/Preferences/com.apple.dock.plist")
-	pfile, err := os.Open(dockPlist)
+	// read users dock plist
+	pfile, err := os.Open(filepath.Join(user.HomeDir, "/Library/Preferences/com.apple.dock.plist"))
 	if err != nil {
-		fmt.Println(err)
+		return Plist{}, err
 	}
 	defer pfile.Close()
 
-	var dPlist DockPlist
-
+	// decode plist into struct
 	decoder := plist.NewDecoder(pfile)
 	err = decoder.Decode(&dPlist)
 	if err != nil {
-		fmt.Println(err)
+		return Plist{}, err
+	}
+
+	return dPlist, nil
+}
+
+func main() {
+
+	dPlist, err := LoadDockPlist()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	fmt.Printf("===> Your Current Dock Layout:\n\n")
