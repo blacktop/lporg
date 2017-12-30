@@ -225,18 +225,20 @@ func (lp *LaunchPad) updateItem(item string, ordering, groupID, itemType int) er
 	case ApplicationType:
 		if lp.DB.Where("title = ?", item).First(&a).RecordNotFound() {
 			utils.DoubleIndent(log.WithField("app", item).Warn)("app not installed. SKIPPING...")
+			return nil
 		}
 		if err := lp.DB.Where("rowid = ?", a.ID).First(&i).Error; err != nil {
-			return errors.Wrap(err, "createItems")
+			return errors.Wrap(err, "item query failed for app: "+item)
 		}
 
 		lp.DB.Model(&i).Related(&i.App)
 	case WidgetType:
 		if lp.DB.Where("title = ?", item).First(&w).RecordNotFound() {
 			utils.DoubleIndent(log.WithField("app", item).Warn)("widget not installed. SKIPPING...")
+			return nil
 		}
 		if err := lp.DB.Where("rowid = ?", w.ID).First(&i).Error; err != nil {
-			return errors.Wrap(err, "createItems")
+			return errors.Wrap(err, "item query failed for widget: "+item)
 		}
 
 		lp.DB.Model(&i).Related(&i.Widget)
@@ -277,7 +279,7 @@ func (lp *LaunchPad) ApplyConfig(config Apps, itemType, groupID, rootParentID in
 			case string:
 				// add a flat item
 				if err := lp.updateItem(item.(string), idx, pageParentID, itemType); err != nil {
-					return groupID, errors.Wrap(err, "createItems")
+					return groupID, errors.Wrap(err, "updateItem")
 				}
 			default:
 				var folder AppFolder
@@ -304,7 +306,7 @@ func (lp *LaunchPad) ApplyConfig(config Apps, itemType, groupID, rootParentID in
 					// add all folder page items
 					for fidx, fitem := range fpage.Items {
 						if err := lp.updateItem(fitem, fidx, groupID, itemType); err != nil {
-							return groupID, errors.Wrap(err, "createItems")
+							return groupID, errors.Wrap(err, "updateItem")
 						}
 					}
 				}
