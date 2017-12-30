@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -491,7 +492,12 @@ func main() {
 				survey.AskOne(prompt, &backup, nil)
 
 				if backup {
-					err := CmdSaveConfig(c.GlobalBool("verbose"), "launchpad.BACKUP.yaml")
+					// get current user
+					user, err := user.Current()
+					if err != nil {
+						return err
+					}
+					err = CmdSaveConfig(c.GlobalBool("verbose"), filepath.Join(user.HomeDir, ".launchpad.yaml"))
 					if err != nil {
 						return err
 					}
@@ -528,7 +534,12 @@ func main() {
 					survey.AskOne(prompt, &backup, nil)
 
 					if backup {
-						err := CmdSaveConfig(c.GlobalBool("verbose"), "launchpad.BACKUP.yaml")
+						// get current user
+						user, err := user.Current()
+						if err != nil {
+							return err
+						}
+						err = CmdSaveConfig(c.GlobalBool("verbose"), filepath.Join(user.HomeDir, ".launchpad.yaml"))
 						if err != nil {
 							return err
 						}
@@ -545,6 +556,18 @@ func main() {
 					log.Fatal("please supply a config file to load")
 				}
 				return nil
+			},
+		},
+		{
+			Name:  "revert",
+			Usage: "revert to launchpad settings backup",
+			Action: func(c *cli.Context) error {
+				// get current user
+				user, err := user.Current()
+				if err != nil {
+					return err
+				}
+				return CmdLoadConfig(c.GlobalBool("verbose"), filepath.Join(user.HomeDir, ".launchpad.yaml"))
 			},
 		},
 	}

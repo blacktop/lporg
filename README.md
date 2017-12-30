@@ -80,9 +80,9 @@ Load a launchpad app layout from a YAML config file
 
 - [ ] create Brewfile from unfound apps IF they are installable via brew?
 - [ ] add ability to save/load JSON as well as YAML
-- [ ] add ability to org dock as well `dorg` ? :wink:
+- [ ] add ability to org dock as well `dorg` ? (in progress)
 - [x] backup current launchpad layout before changing
-- [ ] write backup config to `$HOME/.launchpad.yml`
+- [x] write backup config to `$HOME/.launchpad.yml`
 
 ## Issues
 
