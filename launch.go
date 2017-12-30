@@ -18,6 +18,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+	survey "gopkg.in/AlecAivazis/survey.v1"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -239,7 +240,7 @@ func CmdDefaultOrg(verbose bool) error {
 }
 
 // CmdSaveConfig will save your launchpad settings to a config file
-func CmdSaveConfig(verbose bool) error {
+func CmdSaveConfig(verbose bool, configFile string) error {
 
 	log.Infof(bold, "SAVING LAUNCHPAD DATABASE")
 
@@ -327,7 +328,10 @@ func CmdSaveConfig(verbose bool) error {
 		return errors.Wrap(err, "unable to marshall YAML")
 	}
 
-	if err = ioutil.WriteFile("launchpad.yaml", d, 0644); err != nil {
+	if len(configFile) == 0 {
+		configFile = "launchpad.yaml"
+	}
+	if err = ioutil.WriteFile(configFile, d, 0644); err != nil {
 		return errors.Wrap(err, "unable to write YAML")
 	}
 
@@ -474,8 +478,14 @@ func main() {
 		{
 			Name:  "save",
 			Usage: "save current launchpad settings",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "config, c",
+					Usage: "Save configuration to `FILE`",
+				},
+			},
 			Action: func(c *cli.Context) error {
-				return CmdSaveConfig(c.GlobalBool("verbose"))
+				return CmdSaveConfig(c.GlobalBool("verbose"), c.String("config"))
 			},
 		},
 		{
@@ -483,7 +493,23 @@ func main() {
 			Usage: "load launchpad settings config from `FILE`",
 			Action: func(c *cli.Context) error {
 				if c.Args().Present() {
-					// user supplied launchpad config YAML
+
+					backup := false
+					prompt := &survey.Confirm{
+						Message: "Backup your current Launchpad settings?",
+					}
+					survey.AskOne(prompt, &backup, nil)
+
+					if backup {
+						err := CmdSaveConfig(c.GlobalBool("verbose"), "launchpad.BACKUP.yaml")
+						if err != nil {
+							return err
+						}
+						log.Infof(bold, "successfully backed up current settings!")
+						fmt.Println()
+					}
+
+					// user supplied launchpad config YAMLdep
 					err := CmdLoadConfig(c.GlobalBool("verbose"), c.Args().First())
 					if err != nil {
 						return err
