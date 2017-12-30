@@ -472,6 +472,22 @@ func main() {
 			Usage: "organize by default app categories",
 			Action: func(c *cli.Context) error {
 				fmt.Println(porg)
+
+				backup := false
+				prompt := &survey.Confirm{
+					Message: "Backup your current Launchpad settings?",
+				}
+				survey.AskOne(prompt, &backup, nil)
+
+				if backup {
+					err := CmdSaveConfig(c.GlobalBool("verbose"), "launchpad.BACKUP.yaml")
+					if err != nil {
+						return err
+					}
+					log.Infof(bold, "successfully backed up current settings!")
+					fmt.Println()
+				}
+
 				return CmdDefaultOrg(c.GlobalBool("verbose"))
 			},
 		},

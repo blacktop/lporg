@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/DHowett/go-plist"
+  packages = ["."]
+  revision = "233df3c4f07b0c562da0e8a6fb850681ac49bb90"
+
+[[projects]]
   name = "github.com/apex/log"
   packages = [".","handlers/cli"]
   revision = "0296d6eb16bb28f8a0c55668affcf4876dc269be"
@@ -90,6 +96,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7ae1db08321545012f21fef91e9b91bce84e51c484bacedbd4f1327757db8fbf"
+  inputs-digest = "b94271d46a11af813d6b8172d9728fc327bd4e44043f19a85888db008970b916"
   solver-name = "gps-cdcl"
   solver-version = 1
