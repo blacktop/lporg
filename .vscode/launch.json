@@ -12,8 +12,9 @@
             "showLog": false,
             "program": "${workspaceRoot}",
             "args": [
+                "-V",
                 "load",
-                "test/launchpad-test.yaml"
+                "launchpad.yaml"
             ]
         },
         {
@@ -55,6 +56,6 @@
             "mode": "debug",
             "showLog": false,
             "program": "${workspaceRoot}/dock"
-        }        
+        }
     ]
 }

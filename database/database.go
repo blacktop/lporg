@@ -42,7 +42,11 @@ func (lp *LaunchPad) GetMissing(apps Apps, appType int) ([]string, error) {
 	switch appType {
 	case ApplicationType:
 		var apps []App
-		err := lp.DB.Table("apps").Select("apps.item_id, apps.title").Joins("left join items on items.rowid = apps.item_id").Scan(&apps).Error
+		err := lp.DB.Table("apps").
+			Select("apps.item_id, apps.title").
+			Joins("left join items on items.rowid = apps.item_id").
+			Not("items.parent_id = ?", 6).
+			Scan(&apps).Error
 		if err != nil {
 			return nil, err
 		}
