@@ -14,6 +14,14 @@ archive:
     amd64: amd64
     darwin: macOS
 
+changelog:
+  filters:
+    exclude:
+      - '^small'
+      - add a TODO
+      - update README
+    sort: asc
+
 sign:
    artifacts: checksum
   
