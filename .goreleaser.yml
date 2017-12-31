@@ -20,7 +20,7 @@ changelog:
       - '^small'
       - add a TODO
       - update README
-    sort: asc
+  sort: asc
 
 sign:
    artifacts: checksum
