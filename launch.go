@@ -15,6 +15,7 @@ import (
 	clihander "github.com/apex/log/handlers/cli"
 	"github.com/blacktop/lporg/database"
 	"github.com/blacktop/lporg/database/utils"
+	"github.com/blacktop/lporg/desktop/background"
 	"github.com/blacktop/lporg/dock"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -451,6 +452,11 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 	// Re-enable the update triggers
 	if err := lpad.EnableTriggers(); err != nil {
 		log.WithError(err).Fatal("EnableTriggers failed")
+	}
+
+	if len(config.Desktop.Image) > 0 {
+		utils.Indent(log.WithField("image", config.Desktop.Image).Info)("setting desktop background image")
+		background.SetDesktopImage(config.Desktop.Image)
 	}
 
 	return restartDock()

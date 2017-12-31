@@ -13,6 +13,7 @@ type Config struct {
 	Apps      Apps     `yaml:"apps" json:"apps,omitempty"`
 	Widgets   Apps     `yaml:"widgets" json:"widgets,omitempty"`
 	DockItems []string `yaml:"dock_items" json:"dock_items,omitempty"  mapstructure:"dock_items"`
+	Desktop   Desktop  `yaml:"desktop" json:"desktop,omitempty"  mapstructure:"desktop"`
 }
 
 // Apps is the launchpad apps config object
@@ -36,6 +37,11 @@ type AppFolder struct {
 type FolderPage struct {
 	Number int      `yaml:"number,omitempty" json:"number"`
 	Items  []string `yaml:"items,omitempty" json:"items,omitempty"`
+}
+
+// Desktop is the desktop object
+type Desktop struct {
+	Image string `yaml:"image,omitempty" json:"image,omitempty"`
 }
 
 // LoadConfig loads the Launchpad config from the config file

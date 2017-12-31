@@ -56,6 +56,14 @@
             "mode": "debug",
             "showLog": false,
             "program": "${workspaceRoot}/dock"
+        },
+        {
+            "name": "Desktop",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "showLog": false,
+            "program": "${workspaceRoot}/desktop"
         }
     ]
 }
