@@ -6,7 +6,7 @@
 
 > Organize Your macOS Launchpad Apps
 
---------------------------------------------------------------------------------
+---
 
 ## Why
 
@@ -14,7 +14,7 @@ This project is meant to help people setting up a brand new Mac **or** to keep a
 
 ## Tested On
 
-- `macOS 10.13.2` *(High Sierra)*
+* `macOS 10.13.2` _(High Sierra)_
 
 ## Install
 
@@ -75,15 +75,16 @@ Load a launchpad app layout from a YAML config file
 
 ### Example Configs
 
-- [YAML](https://github.com/blacktop/lporg/blob/master/test/launchpad-test.yaml)
+* [YAML](https://github.com/blacktop/lporg/blob/master/test/launchpad-test.yaml)
 
 ## TODO
 
-- [ ] create Brewfile from unfound apps IF they are installable via brew?
-- [ ] add ability to save/load JSON as well as YAML
-- [ ] add ability to org dock as well `dorg` ? (in progress)
-- [x] backup current launchpad layout before changing
-- [x] write backup config to `$HOME/.launchpad.yml`
+* [ ] create Brewfile from unfound apps IF they are installable via brew?
+* [ ] add ability to save/load JSON as well as YAML
+* [ ] add ability to org dock as well `dorg` ? (in progress)
+* [ ] add ability to save/load to/from iCloud Drive `~/Library/Mobile\ Documents/com~apple~CloudDocs`
+* [x] backup current launchpad layout before changing
+* [x] write backup config to `$HOME/.launchpad.yml`
 
 ## Issues
 
