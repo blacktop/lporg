@@ -35,7 +35,7 @@ Usage: lporg [OPTIONS] COMMAND [arg...]
 
 Organize Your Launchpad
 
-Version: 17.12.13, BuildTime: 20171230
+Version: 18.02.04, BuildTime: 20180204
 Author: blacktop - <https://github.com/blacktop>
 
 Options:
