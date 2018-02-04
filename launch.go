@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -341,14 +340,11 @@ func CmdSaveConfig(verbose bool, configFile string) error {
 		return errors.Wrap(err, "unable to marshall YAML")
 	}
 
-	if len(configFile) == 0 {
-		configFile = "launchpad.yaml"
-	}
 	if err = ioutil.WriteFile(configFile, d, 0644); err != nil {
 		return errors.Wrap(err, "unable to write YAML")
 	}
 
-	log.Infof(bold, "successfully wrote launchpad.yaml")
+	log.Infof(bold, "successfully wrote: "+configFile)
 
 	return nil
 }
@@ -483,6 +479,10 @@ func main() {
 			Name:  "verbose, V",
 			Usage: "verbose output",
 		},
+		cli.BoolFlag{
+			Name:  "icloud, I",
+			Usage: "save config to iCloud Drive",
+		},
 	}
 	app.Commands = []cli.Command{
 		{
@@ -498,12 +498,7 @@ func main() {
 				survey.AskOne(prompt, &backup, nil)
 
 				if backup {
-					// get current user
-					user, err := user.Current()
-					if err != nil {
-						return err
-					}
-					err = CmdSaveConfig(c.GlobalBool("verbose"), filepath.Join(user.HomeDir, ".launchpad.yaml"))
+					err := CmdSaveConfig(c.GlobalBool("verbose"), savePath("", c.GlobalBool("icloud")))
 					if err != nil {
 						return err
 					}
@@ -524,7 +519,7 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				return CmdSaveConfig(c.GlobalBool("verbose"), c.String("config"))
+				return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), c.GlobalBool("icloud")))
 			},
 		},
 		{
@@ -540,12 +535,7 @@ func main() {
 					survey.AskOne(prompt, &backup, nil)
 
 					if backup {
-						// get current user
-						user, err := user.Current()
-						if err != nil {
-							return err
-						}
-						err = CmdSaveConfig(c.GlobalBool("verbose"), filepath.Join(user.HomeDir, ".launchpad.yaml"))
+						err := CmdSaveConfig(c.GlobalBool("verbose"), savePath("", c.GlobalBool("icloud")))
 						if err != nil {
 							return err
 						}
@@ -568,12 +558,7 @@ func main() {
 			Name:  "revert",
 			Usage: "revert to launchpad settings backup",
 			Action: func(c *cli.Context) error {
-				// get current user
-				user, err := user.Current()
-				if err != nil {
-					return err
-				}
-				return CmdLoadConfig(c.GlobalBool("verbose"), filepath.Join(user.HomeDir, ".launchpad.yaml"))
+				return CmdLoadConfig(c.GlobalBool("verbose"), savePath("", c.GlobalBool("icloud")))
 			},
 		},
 	}

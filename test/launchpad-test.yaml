@@ -1,38 +1,168 @@
 apps:
   pages:
-    - number: 1
-      items:
-      - 1Password
-      - App Store
-      - Mail
-      - Calendar
-      - folder: PORG
-        pages:
-        - number: 1
-          items:
-            - Messages
-            - FaceTime
-            - Slack
-            - Tweetbot
-            - Twitter
+  - number: 1
+    items:
+    - App Store
+    - Mail
+    - Calendar
+    - Maps
+    - Calculator
+    - Contacts
+    - System Preferences
+    - folder: Social Networking
+      pages:
+      - number: 1
+        items:
+        - Messages
+        - FaceTime
+        - Slack
+    - folder: Browsers
+      pages:
+      - number: 1
+        items:
+        - Safari
+        - Google Chrome
+        - Brave
+        - Firefox
+    - folder: Productivity
+      pages:
+      - number: 1
+        items:
+        - Reminders
+        - Flux
+        - Notes
+        - Evernote
+    - folder: Photography
+      pages:
+      - number: 1
+        items:
+        - Photos
+        - Photo Booth
+    - folder: Utilities
+      pages:
+      - number: 1
+        items:
+        - Dashboard
+        - Mission Control
+        - Siri
+    - folder: Other
+      pages:
+      - number: 1
+        items:
+        - QuickTime Player
+        - TextEdit
+        - Grapher
+        - DVD Player
+        - Time Machine
+        - Font Book
+        - Chess
+        - Stickies
+        - Image Capture
+        - VoiceOver Utility
+        - AirPort Utility
+        - Migration Assistant
+        - Terminal
+        - Activity Monitor
+        - Console
+        - Keychain Access
+        - System Information
+        - Script Editor
+        - Disk Utility
+        - Boot Camp Assistant
+        - Digital Color Meter
+        - ColorSync Utility
+        - Grab
+        - Bluetooth File Exchange
+        - Audio MIDI Setup
+        - XQuartz
+        - Preview
+        - Dictionary
+    - folder: Office
+      pages:
+      - number: 1
+        items:
+        - Pages
+        - Numbers
+        - Keynote
+    - folder: Developer Tools
+      pages:
+      - number: 1
+        items:
+        - iTerm
+        - Hyper
+        - Xcode
+        - PyCharm
+        - WebStorm
+        - Atom
+        - Visual Studio Code
+        - Sublime Text
+    - folder: Virtualization Tools
+      pages:
+      - number: 1
+        items:
+        - VMware Fusion
+        - Docker
+    - folder: Security
+      pages:
+      - number: 1
+        items:
+        - Wireshark
+        - CCleaner
+    - folder: Video
+      pages:
+      - number: 1
+        items:
+        - iMovie
+        - VLC
+    - folder: Music
+      pages:
+      - number: 1
+        items:
+        - iTunes
+        - Spotify
+        - GarageBand
+    - folder: Education
+      pages:
+      - number: 1
+        items:
+        - iBooks
+    - folder: Graphics & Design
+      pages:
+      - number: 1
+        items:
+        - Pixelmator
+        - Sketch
 widgets:
   pages:
-    - number: 1
-      items:  
-      - Web Clip
-      - Weather
-      - Unit Converter
-      - World Clock
-      - Calendar
-      - Calculator
-      - Dictionary
-      - Contacts
-      - Movies
-      - Stickies
-      - Stocks
-      - Tile Game
+  - number: 1
+    items:
+    - Web Clip
+    - Weather
+    - Unit Converter
+    - World Clock
+    - Calendar
+    - Contacts
+    - Movies
+    - Stickies
+    - Stocks
+    - Tile Game
+    - Calculator
+    - Dictionary
 dock_items:
-  - Siri
-  - Safari
-  - _____
-  - Safari
+- Launchpad
+- Mail
+- Calendar
+- Safari
+- Google Chrome
+- Messages
+- Slack
+- Reminders
+- System Preferences
+- Atom
+- Visual Studio Code
+- Xcode
+- ============
+- Documents
+- Downloads
+desktop:
+  image: /Users/blacktop/Downloads/Pics/cara-delevingne.jpg

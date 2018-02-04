@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"time"
 
@@ -147,6 +148,45 @@ func removeOldDatabaseFiles(dbpath string) error {
 	}
 
 	return restartDock()
+}
+
+func savePath(confPath string, icloud bool) string {
+
+	if icloud {
+		host, err := os.Hostname()
+		if err != nil {
+			log.WithError(err).Fatal("get hostname failed")
+		}
+		iCloudPath, err := getiCloudDrivePath()
+		if err != nil {
+			log.WithError(err).Fatal("get iCloud drive path failed")
+		}
+		if len(confPath) > 0 {
+			return filepath.Join(iCloudPath, confPath)
+		}
+		return filepath.Join(iCloudPath, ".launchpad."+host+".yaml")
+	}
+
+	// get current user
+	user, err := user.Current()
+	if err != nil {
+		log.WithError(err).Fatal("get current user failed")
+	}
+	if len(confPath) > 0 {
+		return confPath
+	}
+	return filepath.Join(user.HomeDir, ".launchpad.yaml")
+}
+
+func getiCloudDrivePath() (string, error) {
+
+	// get current user
+	user, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(user.HomeDir, "Library/Mobile Documents/com~apple~CloudDocs"), nil
 }
 
 func split(buf []string, lim int) [][]string {
