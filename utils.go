@@ -153,18 +153,26 @@ func removeOldDatabaseFiles(dbpath string) error {
 func savePath(confPath string, icloud bool) string {
 
 	if icloud {
-		host, err := os.Hostname()
-		if err != nil {
-			log.WithError(err).Fatal("get hostname failed")
-		}
+
 		iCloudPath, err := getiCloudDrivePath()
 		if err != nil {
 			log.WithError(err).Fatal("get iCloud drive path failed")
 		}
+
 		if len(confPath) > 0 {
 			return filepath.Join(iCloudPath, confPath)
 		}
+
+		host, err := os.Hostname()
+		if err != nil {
+			log.WithError(err).Fatal("get hostname failed")
+		}
+
 		return filepath.Join(iCloudPath, ".launchpad."+host+".yaml")
+	}
+
+	if len(confPath) > 0 {
+		return confPath
 	}
 
 	// get current user
@@ -172,9 +180,7 @@ func savePath(confPath string, icloud bool) string {
 	if err != nil {
 		log.WithError(err).Fatal("get current user failed")
 	}
-	if len(confPath) > 0 {
-		return confPath
-	}
+
 	return filepath.Join(user.HomeDir, ".launchpad.yaml")
 }
 
