@@ -20,6 +20,7 @@ This project is meant to help people setting up a brand new Mac **or** to keep a
 
 ## Tested On
 
+* `macOS 10.12` _(Sierra)_
 * `macOS 10.13.2` _(High Sierra)_
 
 ## Install
