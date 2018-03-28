@@ -105,7 +105,7 @@ Revert a launchpad app layout to the backed up version stored at `$HOME/.launchp
 * [x] add ability to save/load to/from iCloud Drive `~/Library/Mobile\ Documents/com~apple~CloudDocs`
 * [x] backup current launchpad layout before changing
 * [x] write backup config to `$HOME/.launchpad.yml`
-* [ ] create a macOS VM to test on a much crazier collection of apps
+* [ ] create a macOS VM to test on a much crazier collection of apps. See Issue [#1](https://github.com/blacktop/lporg/issues/1)
 
 ## Issues
 
