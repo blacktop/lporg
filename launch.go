@@ -479,10 +479,6 @@ func main() {
 			Name:  "verbose, V",
 			Usage: "verbose output",
 		},
-		cli.BoolFlag{
-			Name:  "icloud, I",
-			Usage: "save config to iCloud Drive",
-		},
 	}
 	app.Commands = []cli.Command{
 		{
@@ -519,7 +515,19 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
-				return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), c.GlobalBool("icloud")))
+				if len(c.String("config")) > 0 {
+					return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), false))
+				}
+				location := ""
+				prompt := &survey.Select{
+					Message: "Choose where to save your launch pad settings:",
+					Options: []string{"home folder", "iCloud"},
+				}
+				survey.AskOne(prompt, &location, nil)
+				if strings.EqualFold(location, "iCloud") {
+					return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), true))
+				}
+				return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), c.lBool("icloud")))
 			},
 		},
 		{
