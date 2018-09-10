@@ -527,7 +527,7 @@ func main() {
 				if strings.EqualFold(location, "iCloud") {
 					return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), true))
 				}
-				return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), c.lBool("icloud")))
+				return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), c.Bool("icloud")))
 			},
 		},
 		{
