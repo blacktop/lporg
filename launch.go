@@ -75,9 +75,9 @@ func parsePages(root int, parentMapping map[int][]database.Item) (database.Apps,
 			case database.ApplicationType:
 				utils.Indent(log.WithField("title", item.App.Title).Info)("found app")
 				p.Items = append(p.Items, item.App.Title)
-			case database.WidgetType:
-				utils.Indent(log.WithField("title", item.Widget.Title).Info)("found widget")
-				p.Items = append(p.Items, item.Widget.Title)
+			// case database.WidgetType:
+			// 	utils.Indent(log.WithField("title", item.Widget.Title).Info)("found widget")
+			// 	p.Items = append(p.Items, item.Widget.Title)
 			case database.FolderRootType:
 
 				utils.Indent(log.WithField("title", item.Group.Title).Info)("found folder")
@@ -172,7 +172,8 @@ func CmdDefaultOrg(verbose bool) error {
 	}
 
 	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
-	groupID := int(math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID())))
+	groupID := int(float64(lpad.GetMaxAppID()))
+	// groupID := int(math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID())))
 
 	utils.Indent(log.Info)("creating folders out of app categories")
 
@@ -207,22 +208,22 @@ func CmdDefaultOrg(verbose bool) error {
 
 	////////////////////////////////////////////////////////////////////
 	// Place Widgets ///////////////////////////////////////////////////
-	utils.Indent(log.Info)("creating Widget folders and adding widgets to them")
-	missing, err := lpad.GetMissing(conf.Widgets, database.WidgetType)
-	if err != nil {
-		log.WithError(err).Fatal("Default GetMissing=>Widgets")
-	}
+	// utils.Indent(log.Info)("creating Widget folders and adding widgets to them")
+	// missing, err := lpad.GetMissing(conf.Widgets, database.WidgetType)
+	// if err != nil {
+	// 	log.WithError(err).Fatal("Default GetMissing=>Widgets")
+	// }
 
-	conf.Widgets.Pages = parseMissing(missing, conf.Widgets.Pages)
-	groupID, err = lpad.ApplyConfig(conf.Widgets, database.WidgetType, groupID, 3)
-	if err != nil {
-		log.WithError(err).Fatal("Default ApplyConfig=>Widgets")
-	}
+	// conf.Widgets.Pages = parseMissing(missing, conf.Widgets.Pages)
+	// groupID, err = lpad.ApplyConfig(conf.Widgets, database.WidgetType, groupID, 3)
+	// if err != nil {
+	// 	log.WithError(err).Fatal("Default ApplyConfig=>Widgets")
+	// }
 
 	/////////////////////////////////////////////////////////////////////
 	// Place Apps ///////////////////////////////////////////////////////
 	utils.Indent(log.Info)("creating App folders and adding apps to them")
-	missing, err = lpad.GetMissing(conf.Apps, database.ApplicationType)
+	missing, err := lpad.GetMissing(conf.Apps, database.ApplicationType)
 	if err != nil {
 		log.WithError(err).Fatal("Default GetMissing=>Apps")
 	}
@@ -306,7 +307,7 @@ func CmdSaveConfig(verbose bool, configFile string) error {
 	parentMapping := make(map[int][]database.Item)
 	for _, item := range items {
 		db.Model(&item).Related(&item.App)
-		db.Model(&item).Related(&item.Widget)
+		// db.Model(&item).Related(&item.Widget)
 		db.Model(&item).Related(&item.Group)
 
 		parentMapping[item.ParentID] = append(parentMapping[item.ParentID], item)
@@ -419,22 +420,22 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 
 	////////////////////////////////////////////////////////////////////
 	// Place Widgets ///////////////////////////////////////////////////
-	utils.Indent(log.Info)("creating Widget folders and adding widgets to them")
-	missing, err := lpad.GetMissing(config.Widgets, database.WidgetType)
-	if err != nil {
-		log.WithError(err).Fatal("GetMissing=>Widgets")
-	}
+	// utils.Indent(log.Info)("creating Widget folders and adding widgets to them")
+	// missing, err := lpad.GetMissing(config.Widgets, database.WidgetType)
+	// if err != nil {
+	// 	log.WithError(err).Fatal("GetMissing=>Widgets")
+	// }
 
-	config.Widgets.Pages = parseMissing(missing, config.Widgets.Pages)
-	groupID, err = lpad.ApplyConfig(config.Widgets, database.WidgetType, groupID, 3)
-	if err != nil {
-		log.WithError(err).Fatal("ApplyConfig=>Widgets")
-	}
+	// config.Widgets.Pages = parseMissing(missing, config.Widgets.Pages)
+	// groupID, err = lpad.ApplyConfig(config.Widgets, database.WidgetType, groupID, 3)
+	// if err != nil {
+	// 	log.WithError(err).Fatal("ApplyConfig=>Widgets")
+	// }
 
 	/////////////////////////////////////////////////////////////////////
 	// Place Apps ///////////////////////////////////////////////////////
 	utils.Indent(log.Info)("creating App folders and adding apps to them")
-	missing, err = lpad.GetMissing(config.Apps, database.ApplicationType)
+	missing, err := lpad.GetMissing(config.Apps, database.ApplicationType)
 	if err != nil {
 		log.WithError(err).Fatal("GetMissing=>Apps")
 	}
