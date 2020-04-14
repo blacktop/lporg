@@ -2,7 +2,7 @@
 
 # lporg
 
-[![Circle CI](https://circleci.com/gh/blacktop/lporg.png?style=shield)](https://circleci.com/gh/blacktop/lporg) [![Github All Releases](https://img.shields.io/github/downloads/blacktop/lporg/total.svg)](https://github.com/blacktop/lporg) [![GitHub release](https://img.shields.io/github/release/blacktop/lporg.svg)](https://github.com/https://github.com/blacktop/lporg/releases/releases) [![License](http://img.shields.io/:license-mit-blue.svg)](http://doge.mit-license.org)
+[![Github All Releases](https://img.shields.io/github/downloads/blacktop/lporg/total.svg)](https://github.com/blacktop/lporg) [![License](http://img.shields.io/:license-mit-blue.svg)](http://doge.mit-license.org)
 
 > Organize Your macOS Launchpad Apps
 

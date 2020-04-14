@@ -8,29 +8,39 @@ builds:
       - amd64
     ldflags: -s -w -X main.Version={{.Version}} -X main.BuildTime={{.Date}}
 
-archive:
-  format: tar.gz
-  replacements:
-    amd64: amd64
-    darwin: macOS
+archives:
+  - id:
+    format: tar.gz
+    replacements:
+      amd64: amd64
+      darwin: macOS
 
 changelog:
+  sort: asc
   filters:
     exclude:
-      - '^small'
-      - add a TODO
-      - update README
-  sort: asc
+      - "^docs:"
+      - "^test:"
+      - "^bumping"
+      - "^Update"
+      - "reorg"
+      - "updates"
+      - Merge pull request
+      - Merge branch
 
-sign:
-   artifacts: checksum
+checksum:
+  name_template: "checksums.txt"
+
+signs:
+  - artifacts: checksum
   
-brew:
-  github:
-    owner: blacktop
-    name: homebrew-tap
-  folder: Formula
-  homepage: "https://github.com/blacktop/lporg"
-  description: "Organize Your macOS Launchpad Apps."
-  test: |
-    system "#{bin}/lporg --version"
+brews:
+  - ids:
+    github:
+      owner: blacktop
+      name: homebrew-tap
+    folder: Formula
+    homepage: "https://github.com/blacktop/lporg"
+    description: "Organize Your macOS Launchpad Apps."
+    test: |
+      system "#{bin}/lporg --version"

@@ -64,6 +64,10 @@ lint: ## Run all the linters
 		./...
 		markdownfmt -w README.md
 
+.PHONY: dry_release
+dry_release:
+	goreleaser --skip-publish --rm-dist --skip-validate
+	
 release: ## Create a new release from the VERSION
 	@echo "===> Creating Release"
 	git tag -a ${VERSION} -m ${MESSAGE}

@@ -7,7 +7,7 @@ import (
 	"os/user"
 	"path/filepath"
 
-	plist "github.com/DHowett/go-plist"
+	"howett.net/plist"
 )
 
 // Plist is a dock plist object
