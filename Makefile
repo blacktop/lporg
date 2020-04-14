@@ -64,27 +64,33 @@ lint: ## Run all the linters
 		./...
 		markdownfmt -w README.md
 
+build: ## Build a beta version of malice
+	@echo "===> Building Binaries"
+	go build
+
 .PHONY: dry_release
 dry_release:
 	goreleaser --skip-publish --rm-dist --skip-validate
 	
-release: ## Create a new release from the VERSION
-	@echo "===> Creating Release"
-	git tag -a ${VERSION} -m ${MESSAGE}
-	git push origin ${VERSION}
-	goreleaser --rm-dist
+.PHONY: bump
+bump: ## Incriment version patch number
+	@echo " > Bumping VERSION"
+	@.hack/bump/version -p $(shell cat VERSION) > VERSION
+	@git commit -am "bumping version to $(shell cat VERSION)"
+	@git push
 
+.PHONY: release
+release: bump ## Create a new release from the VERSION
+	@echo " > Creating Release"
+	@.hack/make/release v$(shell cat VERSION)
+
+.PHONY: destroy
 destroy: ## Remove release from the VERSION
-	@echo "===> Deleting Release"
-	rm -rf dist
-	git tag -d ${VERSION}
-	git push origin :refs/tags/${VERSION}
+	@echo " > Deleting Release"
+	git tag -d v${VERSION}
+	git push origin :refs/tags/v${VERSION}
 
 ci: lint test ## Run all the tests and code checks
-
-build: ## Build a beta version of malice
-	@echo "===> Building Binaries"
-	go build
 
 clean: ## Clean up artifacts
 	@scripts/reset.sh
