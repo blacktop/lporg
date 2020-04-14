@@ -2,7 +2,7 @@
 
 # lporg
 
-[![Github All Releases](https://img.shields.io/github/downloads/blacktop/lporg/total.svg)](https://github.com/blacktop/lporg) [![License](http://img.shields.io/:license-mit-blue.svg)](http://doge.mit-license.org)
+[![Go](https://github.com/blacktop/lporg/workflows/Go/badge.svg?branch=master)](https://github.com/blacktop/lporg/actions) [![Github All Releases](https://img.shields.io/github/downloads/blacktop/lporg/total.svg)](https://github.com/blacktop/lporg) [![License](http://img.shields.io/:license-mit-blue.svg)](http://doge.mit-license.org)
 
 > Organize Your macOS Launchpad Apps
 
@@ -113,4 +113,4 @@ Find a bug? Want more features? Find something missing in the documentation? Let
 
 ## License
 
-MIT Copyright (c) 2017-2018 **blacktop**
+MIT Copyright (c) 2017-2020 **blacktop**
