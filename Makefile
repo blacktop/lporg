@@ -1,27 +1,8 @@
 
 REPO=blacktop
 NAME=lporg
-VERSION=$(shell cat VERSION)
-MESSAGE?="New release ${VERSION}"
-
-# TODO remove \|/templates/\|/api
-SOURCE_FILES?=$$(go list ./... | grep -v /vendor/)
-TEST_PATTERN?=.
-TEST_OPTIONS?=
-
-GIT_COMMIT=$(git rev-parse HEAD)
-GIT_DIRTY=$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
-GIT_DESCRIBE=$(git describe --tags)
-
-
-setup: ## Install all the build and lint dependencies
-	@echo "===> Installing deps"
-	go get -u github.com/alecthomas/gometalinter
-	go get -u github.com/golang/dep/...
-	go get -u github.com/pierrre/gotestcover
-	go get -u golang.org/x/tools/cmd/cover
-	dep ensure
-	gometalinter --install
+CUR_VERSION=$(shell svu current)
+NEXT_VERSION=$(shell svu patch)
 
 .PHONY: test
 test: ## Run all the tests
@@ -44,52 +25,31 @@ test.verbose: ## Run all the tests
 cover: test ## Run all the tests and opens the coverage report
 	go tool cover -html=coverage.txt
 
-fmt: ## gofmt and goimports all go files
-	find . -name '*.go' -not -wholename './vendor/*' | while read -r file; do gofmt -w -s "$$file"; goimports -w "$$file"; done
-
-lint: ## Run all the linters
-	gometalinter --vendor --disable-all \
-		--enable=deadcode \
-		--enable=ineffassign \
-		--enable=gosimple \
-		--enable=staticcheck \
-		--enable=gofmt \
-		--enable=goimports \
-		--enable=dupl \
-		--enable=misspell \
-		--enable=errcheck \
-		--enable=vet \
-		--enable=vetshadow \
-		--deadline=10m \
-		./...
-		markdownfmt -w README.md
-
 build: ## Build a beta version of malice
 	@echo "===> Building Binaries"
 	go build
 
 .PHONY: dry_release
-dry_release:
-	goreleaser --skip-publish --rm-dist --skip-validate
-	
-.PHONY: bump
-bump: ## Incriment version patch number
-	@echo " > Bumping VERSION"
-	@.hack/bump/version -p $(shell cat VERSION) > VERSION
-	@git commit -am "bumping version to $(shell cat VERSION)"
-	@git push
+dry_release: ## Run goreleaser without releasing/pushing artifacts to github
+	@echo " > Creating Pre-release Build ${NEXT_VERSION}"
+	@goreleaser build --rm-dist --skip-validate --id darwin
+
+.PHONY: snapshot
+snapshot: ## Run goreleaser snapshot
+	@echo " > Creating Snapshot ${NEXT_VERSION}"
+	@goreleaser --rm-dist --snapshot
 
 .PHONY: release
-release: bump ## Create a new release from the VERSION
-	@echo " > Creating Release"
-	@.hack/make/release v$(shell cat VERSION)
+release: ## Create a new release from the NEXT_VERSION
+	@echo " > Creating Release ${NEXT_VERSION}"
+	@.hack/make/release ${NEXT_VERSION}
 	@goreleaser --rm-dist
-	
+
 .PHONY: destroy
-destroy: ## Remove release from the VERSION
+destroy: ## Remove release for the CUR_VERSION
 	@echo " > Deleting Release"
-	git tag -d v${VERSION}
-	git push origin :refs/tags/v${VERSION}
+	git tag -d ${CUR_VERSION}
+	git push origin :refs/tags/${CUR_VERSION}
 
 ci: lint test ## Run all the tests and code checks
 

@@ -113,4 +113,4 @@ Find a bug? Want more features? Find something missing in the documentation? Let
 
 ## License
 
-MIT Copyright (c) 2017-2020 **blacktop**
+MIT Copyright (c) 2017-2021 **blacktop**
