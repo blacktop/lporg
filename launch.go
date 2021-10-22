@@ -480,6 +480,10 @@ func main() {
 			Name:  "verbose, V",
 			Usage: "verbose output",
 		},
+		cli.BoolFlag{
+			Name:  "yes, y",
+			Usage: "do not prompt user",
+		},
 	}
 	app.Commands = []cli.Command{
 		{
@@ -489,10 +493,14 @@ func main() {
 				fmt.Println(porg)
 
 				backup := false
-				prompt := &survey.Confirm{
-					Message: "Backup your current Launchpad settings?",
+				if c.GlobalBool("yes") {
+					backup = true
+				} else {
+					prompt := &survey.Confirm{
+						Message: "Backup your current Launchpad settings?",
+					}
+					survey.AskOne(prompt, &backup, nil)
 				}
-				survey.AskOne(prompt, &backup, nil)
 
 				if backup {
 					err := CmdSaveConfig(c.GlobalBool("verbose"), savePath("", c.GlobalBool("icloud")))
@@ -538,10 +546,14 @@ func main() {
 				if c.Args().Present() {
 
 					backup := false
-					prompt := &survey.Confirm{
-						Message: "Backup your current Launchpad settings?",
+					if c.GlobalBool("yes") {
+						backup = true
+					} else {
+						prompt := &survey.Confirm{
+							Message: "Backup your current Launchpad settings?",
+						}
+						survey.AskOne(prompt, &backup, nil)
 					}
-					survey.AskOne(prompt, &backup, nil)
 
 					if backup {
 						err := CmdSaveConfig(c.GlobalBool("verbose"), savePath("", c.GlobalBool("icloud")))
