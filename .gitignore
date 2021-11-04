@@ -22,4 +22,4 @@ dist/
 launchpad-save.yaml
 launchpad.yaml
 launchpad.BACKUP.yaml
-.hack
+.launchpad.yaml

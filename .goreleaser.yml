@@ -5,6 +5,8 @@ before:
 builds:
   - id: darwin
     binary: lporg
+    env:
+      - CGO_ENABLED=1    
     goos:
       - darwin
     goarch:
