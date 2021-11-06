@@ -480,21 +480,29 @@ func main() {
 			Name:  "verbose, V",
 			Usage: "verbose output",
 		},
-		cli.BoolFlag{
-			Name:  "yes, y",
-			Usage: "do not prompt user",
-		},
 	}
 	app.Commands = []cli.Command{
 		{
 			Name:  "default",
 			Usage: "organize by default app categories",
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:  "backup, y",
+					Usage: "backup current launchpad settings",
+				},
+				cli.BoolFlag{
+					Name:  "no-backup, n",
+					Usage: "do not backup current launchpad settings",
+				},
+			},
 			Action: func(c *cli.Context) error {
 				fmt.Println(porg)
 
 				backup := false
-				if c.GlobalBool("yes") {
+				if c.Bool("backup") {
 					backup = true
+				} else if c.Bool("no-backup") {
+					backup = false
 				} else {
 					prompt := &survey.Confirm{
 						Message: "Backup your current Launchpad settings?",
@@ -542,12 +550,24 @@ func main() {
 		{
 			Name:  "load",
 			Usage: "load launchpad settings config from `FILE`",
+			Flags: []cli.Flag{
+				cli.BoolFlag{
+					Name:  "backup, y",
+					Usage: "backup current launchpad settings",
+				},
+				cli.BoolFlag{
+					Name:  "no-backup, n",
+					Usage: "do not backup current launchpad settings",
+				},
+			},
 			Action: func(c *cli.Context) error {
 				if c.Args().Present() {
 
 					backup := false
-					if c.GlobalBool("yes") {
+					if c.Bool("backup") {
 						backup = true
+					} else if c.Bool("no-backup") {
+						backup = false
 					} else {
 						prompt := &survey.Confirm{
 							Message: "Backup your current Launchpad settings?",
