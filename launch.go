@@ -564,36 +564,54 @@ func main() {
 				},
 			},
 			Action: func(c *cli.Context) error {
+				configFileName := savePath("", true)
 				if c.Args().Present() {
+					configFileName = c.Args().First()
+					log.Infof(bold, fmt.Sprintf("Config file: %s", configFileName))
+				} else {
+					log.Infof(bold, fmt.Sprintf("Config file loading from : %s", configFileName))
+				}
 
-					backup := false
-					if c.Bool("backup") {
+				if _, err := os.Stat(configFileName); errors.Is(err, os.ErrNotExist) {
+					return err
+				}
+
+				backup := false
+				if c.Bool("backup") {
+					backup = true
+				} else if c.Bool("no-backup") {
+					backup = false
+				} else {
+					backupAnswer := ""
+					prompt := &survey.Select{
+						Message: "Backup your current Launchpad settings?",
+						Options: []string{"yes", "no"},
+					}
+					survey.AskOne(prompt, &backupAnswer, nil)
+
+					if strings.EqualFold(backupAnswer, "yes") {
 						backup = true
-					} else if c.Bool("no-backup") {
+					} else if strings.EqualFold(backupAnswer, "no") {
 						backup = false
 					} else {
-						prompt := &survey.Confirm{
-							Message: "Backup your current Launchpad settings?",
-						}
-						survey.AskOne(prompt, &backup, nil)
+						os.Exit(1)
+						return nil
 					}
+				}
 
-					if backup {
-						err := CmdSaveConfig(c.GlobalBool("verbose"), savePath("", c.GlobalBool("icloud")))
-						if err != nil {
-							return err
-						}
-						log.Infof(bold, "successfully backed up current settings!")
-						fmt.Println()
-					}
-
-					// user supplied launchpad config YAMLdep
-					err := CmdLoadConfig(c.GlobalBool("verbose"), c.Args().First())
+				if backup {
+					err := CmdSaveConfig(c.GlobalBool("verbose"), savePath("", c.GlobalBool("icloud")))
 					if err != nil {
 						return err
 					}
-				} else {
-					log.Fatal("please supply a config file to load")
+					log.Infof(bold, "successfully backed up current settings!")
+					fmt.Println()
+				}
+
+				// user supplied launchpad config YAMLdep
+				err := CmdLoadConfig(c.GlobalBool("verbose"), configFileName)
+				if err != nil {
+					return err
 				}
 				return nil
 			},
