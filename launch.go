@@ -543,8 +543,12 @@ func main() {
 				survey.AskOne(prompt, &location, nil)
 				if strings.EqualFold(location, "iCloud") {
 					return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), true))
+				} else if strings.EqualFold(location, "home folder") {
+					return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), c.Bool("icloud")))
 				}
-				return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), c.Bool("icloud")))
+
+				os.Exit(1)
+				return nil
 			},
 		},
 		{
