@@ -352,6 +352,11 @@ func CmdSaveConfig(verbose bool, configFile string) error {
 
 // CmdLoadConfig will load your launchpad settings from a config file
 func CmdLoadConfig(verbose bool, configFile string) error {
+	// Read in Config file
+	config, err := database.LoadConfig(configFile)
+	if err != nil {
+		log.WithError(err).Fatal("database.LoadConfig")
+	}
 
 	log.Infof(bold, "PARSE LAUCHPAD DATABASE")
 
@@ -376,7 +381,7 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
 
 	// start from a clean slate
-	err := removeOldDatabaseFiles(lpad.Folder)
+	err = removeOldDatabaseFiles(lpad.Folder)
 	if err != nil {
 		return err
 	}
@@ -411,12 +416,6 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 
 	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
 	groupID := int(math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID())))
-
-	// Read in Config file
-	config, err := database.LoadConfig(configFile)
-	if err != nil {
-		log.WithError(err).Fatal("database.LoadConfig")
-	}
 
 	////////////////////////////////////////////////////////////////////
 	// Place Widgets ///////////////////////////////////////////////////
