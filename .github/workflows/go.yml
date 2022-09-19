@@ -27,4 +27,4 @@ jobs:
       run: go test
 
     - name: Run
-      run: go run *.go --help
+      run: go run . --help
