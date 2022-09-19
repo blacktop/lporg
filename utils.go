@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
@@ -177,24 +176,17 @@ func savePath(confPath string, icloud bool) string {
 		return confPath
 	}
 
-	// get current user
-	user, err := user.Current()
+	path, err := absPath("~/.launchpad.yaml")
+
 	if err != nil {
-		log.WithError(err).Fatal("get current user failed")
+		log.WithError(err).Fatal("get absolute path failed")
 	}
 
-	return filepath.Join(user.HomeDir, ".launchpad.yaml")
+	return path
 }
 
 func getiCloudDrivePath() (string, error) {
-
-	// get current user
-	user, err := user.Current()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(user.HomeDir, "Library/Mobile Documents/com~apple~CloudDocs"), nil
+	return absPath("~/Library/Mobile Documents/com~apple~CloudDocs")
 }
 
 func split(buf []string, lim int) [][]string {
@@ -208,4 +200,26 @@ func split(buf []string, lim int) [][]string {
 		chunks = append(chunks, buf[:len(buf)])
 	}
 	return chunks
+}
+
+func absPath(path string) (string, error) {
+	homeDir, err := os.UserHomeDir()
+
+	if err != nil {
+		return "", err
+	}
+
+	if path == "~" {
+		// In case of "~", which won't be caught by the "else if"
+		path = homeDir
+	} else if strings.HasPrefix(path, "~/") {
+		// Use strings.HasPrefix so we don't match paths like
+		// "/something/~/something/"
+		path = filepath.Join(homeDir, path[2:])
+	}
+
+	// Absolute other relatives elements
+	path, _ = filepath.Abs(path)
+
+	return path, nil
 }

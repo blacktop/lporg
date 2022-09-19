@@ -532,7 +532,18 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				if len(c.String("config")) > 0 {
-					return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), false))
+					configFileName := c.String("config")
+					if !filepath.IsAbs(configFileName) {
+						var err error
+
+						configFileName, err = absPath(configFileName)
+
+						if err != nil {
+							return err
+						}
+					}
+
+					return CmdSaveConfig(c.GlobalBool("verbose"), savePath(configFileName, false))
 				}
 				location := ""
 				prompt := &survey.Select{
@@ -567,6 +578,15 @@ func main() {
 				configFileName := savePath("", true)
 				if c.Args().Present() {
 					configFileName = c.Args().First()
+					if !filepath.IsAbs(configFileName) {
+						var err error
+
+						configFileName, err = absPath(configFileName)
+
+						if err != nil {
+							return err
+						}
+					}
 					log.Infof(bold, fmt.Sprintf("Config file: %s", configFileName))
 				} else {
 					log.Infof(bold, fmt.Sprintf("Config file loading from : %s", configFileName))
