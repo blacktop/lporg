@@ -8,7 +8,7 @@ require (
 	github.com/jinzhu/gorm v1.9.16
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/errors v0.9.1
-	github.com/urfave/cli v1.22.10
+	github.com/urfave/cli v1.22.11
 	gopkg.in/yaml.v2 v2.4.0
 	howett.net/plist v1.0.0
 )
