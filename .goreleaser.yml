@@ -2,6 +2,7 @@ before:
   hooks:
     - go mod tidy
     - go generate ./...
+    - ./.hack/make/completions    
 builds:
   - id: darwin
     binary: lporg  
@@ -22,12 +23,14 @@ universal_binaries:
 
 archives:
   - name_template: >-
-      {{- .ProjectName }}_
-      {{- title .Os }}_
+      {{ .ProjectName }}_{{ .Version }}_
+      {{- if eq .Os "darwin" }}macOS
+      {{- else if eq .Os "ios" }}iOS
+      {{- else }}{{ .Os }}{{ end }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
+      {{- else if eq .Arch "all" }}universal    
       {{- else }}{{ .Arch }}{{ end }}
-      {{- if .Arm }}v{{ .Arm }}{{ end -}}
     format_overrides:
       - goos: windows
         format: zip

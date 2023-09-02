@@ -18,3 +18,5 @@ debug
 lporg
 
 dist/
+completions/
+manpages/
