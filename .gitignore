@@ -18,8 +18,3 @@ debug
 lporg
 
 dist/
-*.csv
-launchpad-save.yaml
-launchpad.yaml
-launchpad.BACKUP.yaml
-.launchpad.yaml

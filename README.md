@@ -92,7 +92,7 @@ Revert a launchpad app layout to the backed up version stored at `$HOME/.launchp
 
 ### Example Configs
 
-- [YAML](https://github.com/blacktop/lporg/blob/master/test/launchpad-test.yaml)
+- [YAML](https://github.com/blacktop/lporg/blob/master/.hack/test/launchpad-test.yaml)
 
 ## TODO
 
