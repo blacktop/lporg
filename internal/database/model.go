@@ -1,6 +1,6 @@
 package database
 
-import "github.com/jinzhu/gorm"
+import "gorm.io/gorm"
 
 // Types
 const (

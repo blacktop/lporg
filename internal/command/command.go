@@ -1,39 +1,35 @@
-package main
+// Package command provides the command line interface functionality for lporg.
+package command
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/apex/log"
-	clihander "github.com/apex/log/handlers/cli"
-	"github.com/blacktop/lporg/database"
-	"github.com/blacktop/lporg/database/utils"
-	"github.com/blacktop/lporg/desktop/background"
-	"github.com/blacktop/lporg/dock"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/blacktop/lporg/internal/database"
+	"github.com/blacktop/lporg/internal/database/utils"
+	"github.com/blacktop/lporg/internal/desktop"
+	"github.com/blacktop/lporg/internal/dock"
+	"github.com/glebarez/sqlite"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
-var (
-	// Version stores the plugin's version
-	Version string
-	// BuildTime stores the plugin's build time
-	BuildTime string
-	// for log output
-	bold = "\033[1m%s\033[0m"
-	// lpad is the main object
-	lpad database.LaunchPad
-)
+const bold = "\033[1m%s\033[0m"
+
+// Config is the command config
+type Config struct {
+	File     string
+	Cloud    bool
+	Backup   bool
+	LogLevel int
+}
 
 // add missing apps to pages at 30 apps per page
 func parseMissing(missing []string, pages []database.Page) []database.Page {
@@ -118,14 +114,11 @@ func parsePages(root int, parentMapping map[int][]database.Item) (database.Apps,
 	return apps, nil
 }
 
-// CmdDefaultOrg will organize your launchpad by the app default categories
-func CmdDefaultOrg(verbose bool) error {
+// DefaultOrg will organize your launchpad by the app default categories
+func DefaultOrg(c *Config) (err error) {
+	var lpad database.LaunchPad
 
 	log.Infof(bold, "USING DEFAULT LAUNCHPAD ORGANIZATION")
-
-	if verbose {
-		log.SetLevel(log.DebugLevel)
-	}
 
 	// find launchpad database
 	tmpDir := os.Getenv("TMPDIR")
@@ -138,23 +131,30 @@ func CmdDefaultOrg(verbose bool) error {
 	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
 
 	// start from a clean slate
-	err := removeOldDatabaseFiles(lpad.Folder)
+	err = removeOldDatabaseFiles(lpad.Folder)
 	if err != nil {
 		return err
 	}
 
 	// open launchpad database
-	db, err := gorm.Open("sqlite3", lpad.File)
+	db, err := gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.LogLevel(c.LogLevel)),
+	})
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() {
+		db, err := db.DB()
+		if err != nil {
+			err = errors.Wrap(err, "unable to get db when trying to close")
+		}
+		err = db.Close()
+		if err != nil {
+			err = errors.Wrap(err, "unable to close db")
+		}
+	}()
 
 	lpad.DB = db
-
-	if verbose {
-		db.LogMode(true)
-	}
 
 	// Clear all items related to groups so we can re-create them
 	if err := lpad.ClearGroups(); err != nil {
@@ -180,7 +180,7 @@ func CmdDefaultOrg(verbose bool) error {
 	// Create default config file
 	var apps []database.App
 	var categories []database.Category
-	var conf database.Config
+	var dbconf database.Config
 
 	page := database.Page{Number: 1}
 
@@ -204,7 +204,7 @@ func CmdDefaultOrg(verbose bool) error {
 		page.Items = append(page.Items, folder)
 	}
 
-	conf.Apps.Pages = append(conf.Apps.Pages, page)
+	dbconf.Apps.Pages = append(dbconf.Apps.Pages, page)
 
 	////////////////////////////////////////////////////////////////////
 	// Place Widgets ///////////////////////////////////////////////////
@@ -223,13 +223,13 @@ func CmdDefaultOrg(verbose bool) error {
 	/////////////////////////////////////////////////////////////////////
 	// Place Apps ///////////////////////////////////////////////////////
 	utils.Indent(log.Info)("creating App folders and adding apps to them")
-	missing, err := lpad.GetMissing(conf.Apps, database.ApplicationType)
+	missing, err := lpad.GetMissing(dbconf.Apps, database.ApplicationType)
 	if err != nil {
 		log.WithError(err).Fatal("Default GetMissing=>Apps")
 	}
 
-	conf.Apps.Pages = parseMissing(missing, conf.Apps.Pages)
-	groupID, err = lpad.ApplyConfig(conf.Apps, database.ApplicationType, groupID, 1)
+	dbconf.Apps.Pages = parseMissing(missing, dbconf.Apps.Pages)
+	groupID, err = lpad.ApplyConfig(dbconf.Apps, database.ApplicationType, groupID, 1)
 	if err != nil {
 		log.WithError(err).Fatal("Default ApplyConfig==>Apps")
 	}
@@ -242,22 +242,18 @@ func CmdDefaultOrg(verbose bool) error {
 	return restartDock()
 }
 
-// CmdSaveConfig will save your launchpad settings to a config file
-func CmdSaveConfig(verbose bool, configFile string) error {
-
-	log.Infof(bold, "SAVING LAUNCHPAD DATABASE")
-
-	if verbose {
-		log.SetLevel(log.DebugLevel)
-	}
-
+// SaveConfig will save your launchpad settings to a config file
+func SaveConfig(c *Config) error {
 	var (
+		lpad          database.LaunchPad
 		launchpadRoot int
 		dashboardRoot int
 		items         []database.Item
 		dbinfo        []database.DBInfo
 		conf          database.Config
 	)
+
+	log.Infof(bold, "SAVING LAUNCHPAD DATABASE")
 
 	// find launchpad database
 	tmpDir := os.Getenv("TMPDIR")
@@ -270,15 +266,22 @@ func CmdSaveConfig(verbose bool, configFile string) error {
 	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
 
 	// open launchpad database
-	db, err := gorm.Open("sqlite3", lpad.File)
+	db, err := gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.LogLevel(c.LogLevel)),
+	})
 	if err != nil {
 		return err
 	}
-	defer db.Close()
-
-	if verbose {
-		db.LogMode(true)
-	}
+	defer func() {
+		db, err := db.DB()
+		if err != nil {
+			err = errors.Wrap(err, "unable to get db when trying to close")
+		}
+		err = db.Close()
+		if err != nil {
+			err = errors.Wrap(err, "unable to close db")
+		}
+	}()
 
 	// get launchpad and dashboard roots
 	if err := db.Where("key in (?)", []string{"launchpad_root", "dashboard_root"}).Find(&dbinfo).Error; err != nil {
@@ -306,9 +309,9 @@ func CmdSaveConfig(verbose bool, configFile string) error {
 	log.Info("collecting launchpad/dashboard pages")
 	parentMapping := make(map[int][]database.Item)
 	for _, item := range items {
-		db.Model(&item).Related(&item.App)
+		db.Model(&item).Association("App").Find(&item.App)
 		// db.Model(&item).Related(&item.Widget)
-		db.Model(&item).Related(&item.Group)
+		db.Model(&item).Association("Group").Find(&item.Group)
 
 		parentMapping[item.ParentID] = append(parentMapping[item.ParentID], item)
 	}
@@ -327,12 +330,14 @@ func CmdSaveConfig(verbose bool, configFile string) error {
 
 	log.Info("interating over dock apps")
 	dPlist, err := dock.LoadDockPlist()
-	for _, item := range dPlist.PersistentApps {
-		conf.DockItems = append(conf.DockItems, item.TileData.FileLabel)
+	if err != nil {
+		return errors.Wrap(err, "unable to load dock plist")
 	}
-	conf.DockItems = append(conf.DockItems, "============")
+	for _, item := range dPlist.PersistentApps {
+		conf.Dock.Apps = append(conf.Dock.Apps, item.TileData.GetPath())
+	}
 	for _, item := range dPlist.PersistentOthers {
-		conf.DockItems = append(conf.DockItems, item.TileData.FileLabel)
+		conf.Dock.Others = append(conf.Dock.Others, item.TileData.GetPath())
 	}
 
 	// write out config YAML file
@@ -341,28 +346,30 @@ func CmdSaveConfig(verbose bool, configFile string) error {
 		return errors.Wrap(err, "unable to marshall YAML")
 	}
 
-	if err = ioutil.WriteFile(configFile, d, 0644); err != nil {
+	if err = os.WriteFile(savePath(c.File, c.Cloud), d, 0644); err != nil {
 		return errors.Wrap(err, "unable to write YAML")
 	}
 
-	log.Infof(bold, "successfully wrote: "+configFile)
+	if c.Backup {
+		log.Infof(bold, "successfully backed up current settings!")
+	} else {
+		log.Infof(bold, "successfully wrote: "+savePath(c.File, c.Cloud))
+	}
 
 	return nil
 }
 
-// CmdLoadConfig will load your launchpad settings from a config file
-func CmdLoadConfig(verbose bool, configFile string) error {
+// LoadConfig will load your launchpad settings from a config file
+func LoadConfig(c *Config) error {
+	var lpad database.LaunchPad
+
 	// Read in Config file
-	config, err := database.LoadConfig(configFile)
+	config, err := database.LoadConfig(savePath(c.File, c.Cloud))
 	if err != nil {
 		log.WithError(err).Fatal("database.LoadConfig")
 	}
 
 	log.Infof(bold, "PARSE LAUCHPAD DATABASE")
-
-	if verbose {
-		log.SetLevel(log.DebugLevel)
-	}
 
 	// Older macOS ////////////////////////////////
 	// $HOME/Library/Application\ Support/Dock/*.db
@@ -387,17 +394,22 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 	}
 
 	// open launchpad database
-	db, err := gorm.Open("sqlite3", lpad.File)
+	db, err := gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.LogLevel(c.LogLevel)),
+	})
 	if err != nil {
 		return err
 	}
-	defer db.Close()
-
-	lpad.DB = db
-
-	if verbose {
-		db.LogMode(true)
-	}
+	defer func() {
+		db, err := db.DB()
+		if err != nil {
+			err = errors.Wrap(err, "unable to get db when trying to close")
+		}
+		err = db.Close()
+		if err != nil {
+			err = errors.Wrap(err, "unable to close db")
+		}
+	}()
 
 	// Clear all items related to groups so we can re-create them
 	if err := lpad.ClearGroups(); err != nil {
@@ -452,186 +464,28 @@ func CmdLoadConfig(verbose bool, configFile string) error {
 
 	if len(config.Desktop.Image) > 0 {
 		utils.Indent(log.WithField("image", config.Desktop.Image).Info)("setting desktop background image")
-		background.SetDesktopImage(config.Desktop.Image)
+		desktop.SetDesktopImage(config.Desktop.Image)
+	}
+
+	if len(config.Dock.Apps) > 0 || len(config.Dock.Others) > 0 {
+		utils.Indent(log.Info)("setting dock apps")
+		dPlist, err := dock.LoadDockPlist()
+		if err != nil {
+			return errors.Wrap(err, "unable to load dock plist")
+		}
+		dPlist.PersistentApps = []dock.PAItem{dPlist.PersistentApps[0]} // remove all apps except for Launchpad
+		for _, app := range config.Dock.Apps {
+			utils.DoubleIndent(log.WithField("app", app).Info)("adding app to dock")
+			dPlist.AddApp(app)
+		}
+		for _, other := range config.Dock.Others {
+			utils.DoubleIndent(log.WithField("other", other).Info)("adding other to dock")
+			dPlist.AddOther(other)
+		}
+		if err := dPlist.Save(); err != nil {
+			log.WithError(err).Fatal("unable to save dock plist")
+		}
 	}
 
 	return restartDock()
-}
-
-func init() {
-	log.SetHandler(clihander.Default)
-}
-
-func main() {
-
-	cli.AppHelpTemplate = appHelpTemplate
-	app := cli.NewApp()
-
-	app.Name = "lporg"
-	app.Author = "blacktop"
-	app.Email = "https://github.com/blacktop"
-	complTime, _ := time.Parse(time.RFC3339, BuildTime)
-	app.Version = Version + ", BuildTime: " + complTime.Format("20060102")
-	app.Compiled = complTime
-	app.Usage = "Organize Your Launchpad"
-	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "verbose, V",
-			Usage: "verbose output",
-		},
-	}
-	app.Commands = []cli.Command{
-		{
-			Name:  "default",
-			Usage: "organize by default app categories",
-			Flags: []cli.Flag{
-				cli.BoolFlag{
-					Name:  "backup, y",
-					Usage: "backup current launchpad settings",
-				},
-				cli.BoolFlag{
-					Name:  "no-backup, n",
-					Usage: "do not backup current launchpad settings",
-				},
-			},
-			Action: func(c *cli.Context) error {
-				fmt.Println(porg)
-
-				backup := false
-				if c.Bool("backup") {
-					backup = true
-				} else if c.Bool("no-backup") {
-					backup = false
-				} else {
-					prompt := &survey.Confirm{
-						Message: "Backup your current Launchpad settings?",
-					}
-					survey.AskOne(prompt, &backup, nil)
-				}
-
-				if backup {
-					err := CmdSaveConfig(c.GlobalBool("verbose"), savePath("", c.GlobalBool("icloud")))
-					if err != nil {
-						return err
-					}
-					log.Infof(bold, "successfully backed up current settings!")
-					fmt.Println()
-				}
-
-				return CmdDefaultOrg(c.GlobalBool("verbose"))
-			},
-		},
-		{
-			Name:  "save",
-			Usage: "save current launchpad settings",
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "config, c",
-					Usage: "Save configuration to `FILE`",
-				},
-			},
-			Action: func(c *cli.Context) error {
-				if len(c.String("config")) > 0 {
-					return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), false))
-				}
-				location := ""
-				prompt := &survey.Select{
-					Message: "Choose where to save your launch pad settings:",
-					Options: []string{"home folder", "iCloud"},
-				}
-				survey.AskOne(prompt, &location, nil)
-				if strings.EqualFold(location, "iCloud") {
-					return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), true))
-				} else if strings.EqualFold(location, "home folder") {
-					return CmdSaveConfig(c.GlobalBool("verbose"), savePath(c.String("config"), c.Bool("icloud")))
-				}
-
-				os.Exit(1)
-				return nil
-			},
-		},
-		{
-			Name:  "load",
-			Usage: "load launchpad settings config from `FILE`",
-			Flags: []cli.Flag{
-				cli.BoolFlag{
-					Name:  "backup, y",
-					Usage: "backup current launchpad settings",
-				},
-				cli.BoolFlag{
-					Name:  "no-backup, n",
-					Usage: "do not backup current launchpad settings",
-				},
-			},
-			Action: func(c *cli.Context) error {
-				configFileName := savePath("", true)
-				if c.Args().Present() {
-					configFileName = c.Args().First()
-					log.Infof(bold, fmt.Sprintf("Config file: %s", configFileName))
-				} else {
-					log.Infof(bold, fmt.Sprintf("Config file loading from : %s", configFileName))
-				}
-
-				if _, err := os.Stat(configFileName); errors.Is(err, os.ErrNotExist) {
-					return err
-				}
-
-				backup := false
-				if c.Bool("backup") {
-					backup = true
-				} else if c.Bool("no-backup") {
-					backup = false
-				} else {
-					backupAnswer := ""
-					prompt := &survey.Select{
-						Message: "Backup your current Launchpad settings?",
-						Options: []string{"yes", "no"},
-					}
-					survey.AskOne(prompt, &backupAnswer, nil)
-
-					if strings.EqualFold(backupAnswer, "yes") {
-						backup = true
-					} else if strings.EqualFold(backupAnswer, "no") {
-						backup = false
-					} else {
-						os.Exit(1)
-						return nil
-					}
-				}
-
-				if backup {
-					err := CmdSaveConfig(c.GlobalBool("verbose"), savePath("", c.GlobalBool("icloud")))
-					if err != nil {
-						return err
-					}
-					log.Infof(bold, "successfully backed up current settings!")
-					fmt.Println()
-				}
-
-				// user supplied launchpad config YAMLdep
-				err := CmdLoadConfig(c.GlobalBool("verbose"), configFileName)
-				if err != nil {
-					return err
-				}
-				return nil
-			},
-		},
-		{
-			Name:  "revert",
-			Usage: "revert to launchpad settings backup",
-			Action: func(c *cli.Context) error {
-				return CmdLoadConfig(c.GlobalBool("verbose"), savePath("", c.GlobalBool("icloud")))
-			},
-		},
-	}
-	app.Action = func(c *cli.Context) error {
-		if !c.Args().Present() {
-			cli.ShowAppHelp(c)
-		}
-		return nil
-	}
-
-	if err := app.Run(os.Args); err != nil {
-		log.WithError(err).Fatal("failed")
-	}
 }

@@ -1,4 +1,4 @@
-package main
+package command
 
 import (
 	"context"
@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/apex/log"
-	"github.com/blacktop/lporg/database/utils"
+	"github.com/blacktop/lporg/internal/database/utils"
 	"github.com/pkg/errors"
 )
 
-var porg = `
+var PorgAsciiArt = `
                                           '.:/+ooossoo+/:-'
                                      ':+ydNMMMMMMMMMMMMMMMNmyo:'
                                    '.--.''.:ohNMMMMMMMMNho:.''..'
@@ -69,23 +69,6 @@ var porg = `
                                ':o/'                              '/+.
                                    '                              '
 
-`
-
-var appHelpTemplate = `Usage: {{.Name}} {{if .Flags}}[OPTIONS] {{end}}COMMAND [arg...]
-
-{{.Usage}}
-
-Version: {{.Version}}{{if or .Author .Email}}
-Author:{{if .Author}} {{.Author}}{{if .Email}} - <{{.Email}}>{{end}}{{else}}
-  {{.Email}}{{end}}{{end}}
-{{if .Flags}}
-Options:
-  {{range .Flags}}{{.}}
-  {{end}}{{end}}
-Commands:
-  {{range .Commands}}{{.Name}}{{with .ShortName}}, {{.}}{{end}}{{ "\t" }}{{.Usage}}
-  {{end}}
-Run '{{.Name}} COMMAND --help' for more information on a command.
 `
 
 // RunCommand runs cmd on file
@@ -205,7 +188,7 @@ func split(buf []string, lim int) [][]string {
 		chunks = append(chunks, chunk)
 	}
 	if len(buf) > 0 {
-		chunks = append(chunks, buf[:len(buf)])
+		chunks = append(chunks, buf[:])
 	}
 	return chunks
 }

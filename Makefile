@@ -6,7 +6,7 @@ NEXT_VERSION=$(shell svu patch)
 
 .PHONY: test
 test: ## Run all the tests
-	@scripts/reset.sh
+	@.hack/scripts/reset.sh
 	@go run *.go load launchpad.yaml
 	# gotestcover $(TEST_OPTIONS) -covermode=atomic -coverprofile=coverage.txt $(SOURCE_FILES) -run $(TEST_PATTERN) -timeout=30s
 
@@ -15,11 +15,11 @@ test.save: ## Run all the tests
 	@go run *.go save
 
 test.default: ## Run the default test
-	@scripts/reset.sh
+	@.hack/scripts/reset.sh
 	@go run *.go default
 
 test.verbose: ## Run all the tests
-	@scripts/reset.sh
+	@.hack/scripts/reset.sh
 	@go run *.go -V load launchpad.yaml
 
 cover: test ## Run all the tests and opens the coverage report
@@ -32,7 +32,7 @@ build: ## Build a beta version of malice
 .PHONY: dry_release
 dry_release: ## Run goreleaser without releasing/pushing artifacts to github
 	@echo " > Creating Pre-release Build ${NEXT_VERSION}"
-	@goreleaser build --rm-dist --skip-validate --id darwin
+	@goreleaser build --skip-validate --id darwin --clean --single-target --output dist/lporg
 
 .PHONY: snapshot
 snapshot: ## Run goreleaser snapshot
@@ -54,7 +54,7 @@ destroy: ## Remove release for the CUR_VERSION
 ci: lint test ## Run all the tests and code checks
 
 clean: ## Clean up artifacts
-	@scripts/reset.sh
+	@.hack/scripts/reset.sh
 	@rm -rf dist/ || true
 	@rm launchpad.db || true
 	@rm lporg || true

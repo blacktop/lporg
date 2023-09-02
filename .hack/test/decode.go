@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/mitchellh/mapstructure"
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // Config is the Launchpad config
@@ -42,7 +42,7 @@ type FolderPage struct {
 func testYAML() {
 	var config Config
 
-	data, err := ioutil.ReadFile("launchpad-test.yaml")
+	data, err := os.ReadFile("launchpad-test.yaml")
 	if err != nil {
 		log.Fatal(err)
 	}

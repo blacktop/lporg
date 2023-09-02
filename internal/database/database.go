@@ -1,3 +1,4 @@
+// Package database provides launchpad database functions
 package database
 
 import (
@@ -7,9 +8,10 @@ import (
 	"sort"
 
 	"github.com/apex/log"
-	"github.com/blacktop/lporg/database/utils"
+	"github.com/blacktop/lporg/internal/database/utils"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
+	"gorm.io/gorm"
 )
 
 // GetMissing returns a list of the rest of the apps not in the config
@@ -90,12 +92,12 @@ func (lp *LaunchPad) AddRootsAndHoldingPages() error {
 	utils.Indent(log.Info)("add root and holding pages")
 
 	items := []Item{
-		Item{ID: 1, UUID: "ROOTPAGE", Type: RootType, ParentID: 0, Ordering: 0},
-		Item{ID: 2, UUID: "HOLDINGPAGE", Type: PageType, ParentID: 1, Ordering: 0},
-		Item{ID: 3, UUID: "ROOTPAGE_DB", Type: RootType, ParentID: 0, Ordering: 0},
-		Item{ID: 4, UUID: "HOLDINGPAGE_DB", Type: PageType, ParentID: 3, Ordering: 0},
-		Item{ID: 5, UUID: "ROOTPAGE_VERS", Type: RootType, ParentID: 0, Ordering: 0},
-		Item{ID: 6, UUID: "HOLDINGPAGE_VERS", Type: PageType, ParentID: 5, Ordering: 0},
+		{ID: 1, UUID: "ROOTPAGE", Type: RootType, ParentID: 0, Ordering: 0},
+		{ID: 2, UUID: "HOLDINGPAGE", Type: PageType, ParentID: 1, Ordering: 0},
+		{ID: 3, UUID: "ROOTPAGE_DB", Type: RootType, ParentID: 0, Ordering: 0},
+		{ID: 4, UUID: "HOLDINGPAGE_DB", Type: PageType, ParentID: 3, Ordering: 0},
+		{ID: 5, UUID: "ROOTPAGE_VERS", Type: RootType, ParentID: 0, Ordering: 0},
+		{ID: 6, UUID: "HOLDINGPAGE_VERS", Type: PageType, ParentID: 5, Ordering: 0},
 	}
 
 	for _, item := range items {
@@ -227,7 +229,8 @@ func (lp *LaunchPad) updateItem(item string, ordering, groupID, itemType int) er
 
 	switch itemType {
 	case ApplicationType:
-		if lp.DB.Where("title = ?", item).First(&a).RecordNotFound() {
+
+		if result := lp.DB.Where("title = ?", item).First(&a); result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			utils.DoubleIndent(log.WithField("app", item).Warn)("app not installed. SKIPPING...")
 			return nil
 		}
@@ -235,9 +238,9 @@ func (lp *LaunchPad) updateItem(item string, ordering, groupID, itemType int) er
 			return errors.Wrap(err, "item query failed for app: "+item)
 		}
 
-		lp.DB.Model(&i).Related(&i.App)
+		lp.DB.Model(&i).Association("App").Find(&i.App)
 	case WidgetType:
-		if lp.DB.Where("title = ?", item).First(&w).RecordNotFound() {
+		if result := lp.DB.Where("title = ?", item).First(&w); result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			utils.DoubleIndent(log.WithField("app", item).Warn)("widget not installed. SKIPPING...")
 			return nil
 		}
@@ -245,7 +248,7 @@ func (lp *LaunchPad) updateItem(item string, ordering, groupID, itemType int) er
 			return errors.Wrap(err, "item query failed for widget: "+item)
 		}
 
-		lp.DB.Model(&i).Related(&i.Widget)
+		lp.DB.Model(&i).Association("Widget").Find(&i.Widget)
 	default:
 		utils.DoubleIndent(log.WithField("type", itemType).Error)("bad type")
 	}

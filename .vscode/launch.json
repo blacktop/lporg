@@ -27,7 +27,9 @@
             "program": "${workspaceRoot}",
             "args": [
                 "-V",
-                "save"
+                "save",
+                "--config",
+                "/tmp/lp.yml"
             ]
         },
         {

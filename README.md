@@ -1,4 +1,4 @@
-![logo](https://github.com/blacktop/lporg/raw/master/porg.jpeg)
+![logo](https://github.com/blacktop/lporg/raw/master/.github/imgs/porg.jpeg)
 
 # lporg
 
@@ -33,27 +33,27 @@ $ brew install blacktop/tap/lporg
 ## Getting Started
 
 ```sh
-Usage: lporg [OPTIONS] COMMAND [arg...]
+❯ lporg
 
 Organize Your Launchpad
 
-Version: 18.02.04, BuildTime: 20180204
-Author: blacktop - <https://github.com/blacktop>
+Usage:
+  lporg [command]
 
-Options:
-  --verbose, -V  verbose output
-  --icloud, -I   save config to iCloud Drive
-  --help, -h     show help
-  --version, -v  print the version
+Available Commands:
+  default     Organize by default Apple app categories
+  help        Help about any command
+  load        Load launchpad settings config from `FILE`
+  revert      Revert to launchpad settings backup
+  save        Save current launchpad settings
 
-Commands:
-  default  organize by default app categories
-  save     save current launchpad settings
-  load     load launchpad settings config from `FILE`
-  revert   revert to launchpad settings backup
-  help     Shows a list of commands or help for one command
+Flags:
+  -c, --config string   config file (default is $HOME/.lporg.yaml)
+  -h, --help            help for lporg
+      --icloud          iCloud config
+  -V, --verbose         verbose output
 
-Run 'lporg COMMAND --help' for more information on a command.
+Use "lporg [command] --help" for more information about a command.
 ```
 
 ## Commands
@@ -113,4 +113,4 @@ Find a bug? Want more features? Find something missing in the documentation? Let
 
 ## License
 
-MIT Copyright (c) 2017-2022 **blacktop**
+MIT Copyright (c) 2017-2023 **blacktop**

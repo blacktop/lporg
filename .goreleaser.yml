@@ -4,82 +4,98 @@ before:
     - go generate ./...
 builds:
   - id: darwin
-    binary: lporg
-    env:
-      - CGO_ENABLED=1    
+    binary: lporg  
     goos:
       - darwin
     goarch:
       - amd64
       - arm64
-    ldflags: -s -w -X main.Version={{.Version}} -X main.BuildTime={{.Date}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags: -s -w -X main.AppVersion={{.Version}} -X main.AppBuildTime={{.Date}}
+
 universal_binaries:
   - id: darwin
     replace: true
     name_template: "lporg"
+
 archives:
-  - replacements:
-      darwin: macOS
-      amd64: x86_64
-      all: universal
-    name_template: "lporg_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  - name_template: >-
+      {{- .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end -}}
     format_overrides:
       - goos: windows
         format: zip
+    builds_info:
+      group: root
+      owner: root
     files:
+      - README.md
+      - LICENSE
       - completions/*
+
 checksum:
-  name_template: "checksums.darwin.txt"
+  name_template: "checksums.txt"
   disable: false
+
 signs:
   - artifacts: checksum
+
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
+
 brews:
-  - name: lporg
-    tap:
+  - repository:
       owner: blacktop
       name: homebrew-tap
     folder: Formula
     homepage: "https://github.com/blacktop/lporg"
     description: Organize Your macOS Launchpad Apps
+    license: MIT    
     install: |
       bin.install "lporg"
     test: |
       system "#{bin}/lporg --version"
+
 changelog:
   sort: asc
   use: github
   groups:
-    - title: 'New Features'
-      regexp: "^.*feat[(\\w)]*:+.*$"
-      order: 100
-    - title: 'Bug fixes'
-      regexp: "^.*fix[(\\w)]*:+.*$"
-      order: 200
     - title: Dependency updates
-      regexp: "^.*chore\\(deps\\)*:+.*$"
+      regexp: '^.*?(feat|fix|chore)\(deps\)!?:.+$'
       order: 300
-    - title: 'Documentation updates'
-      regexp: "^.*docs[(\\w)]*:+.*$"
+    - title: "New Features"
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 100
+    - title: "Security updates"
+      regexp: '^.*?sec(\([[:word:]]+\))??!?:.+$'
+      order: 150
+    - title: "Bug fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 200
+    - title: "Documentation updates"
+      regexp: ^.*?(doc|docs)(\([[:word:]]+\))??!?:.+$
+      order: 400
+    - title: "Build process updates"
+      regexp: ^.*?build(\([[:word:]]+\))??!?:.+$
       order: 400
     - title: Other work
       order: 9999
   filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
-      - "^bumping"
-      - "^Update"
-      - "^Delete"
-      - "^Working"
-      - "reorg"
-      - "updates"
-      - Merge pull request
-      - Merge remote-tracking branch
-      - Merge branch
+    include:
+      - "^feat.*"
+      - "^fix.*"
+      - "^chore.*"
+      - "^sec.*"
+      - "^(doc|docs).*"
+
 release:
-  target_commitish: '{{ .Commit }}'
+  name_template: "v{{ .Version }}"
   footer: |
     ### Summary
     **Full Changelog**: https://github.com/blacktop/ipsw/compare/{{ .PreviousTag }}...{{ .Tag }}
