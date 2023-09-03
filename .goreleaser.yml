@@ -14,7 +14,7 @@ builds:
     mod_timestamp: "{{ .CommitTimestamp }}"
     flags:
       - -trimpath
-    ldflags: -s -w -X main.AppVersion={{.Version}} -X main.AppBuildTime={{.Date}}
+    ldflags: -s -w -X github.com/blacktop/lporg/cmd.AppVersion={{.Version}} -X github.com/blacktop/lporg/cmd.AppBuildTime={{.Date}}
 
 universal_binaries:
   - id: darwin

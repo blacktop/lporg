@@ -47,11 +47,12 @@ Available Commands:
   load        Load launchpad settings config from `FILE`
   revert      Revert to launchpad settings backup
   save        Save current launchpad settings
+  version     Print the version number of lporg
 
 Flags:
-  -c, --config string   config file (default is $HOME/.lporg.yaml)
+  -c, --config string   config file (default is $CONFIG/lporg/config.yaml)
   -h, --help            help for lporg
-      --icloud          iCloud config
+      --icloud          use iCloud for config
   -V, --verbose         verbose output
 
 Use "lporg [command] --help" for more information about a command.
