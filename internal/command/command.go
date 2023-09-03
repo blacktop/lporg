@@ -25,10 +25,74 @@ const bold = "\033[1m%s\033[0m"
 
 // Config is the command config
 type Config struct {
+	Cmd      string
 	File     string
 	Cloud    bool
 	Backup   bool
 	LogLevel int
+}
+
+// Verify will verify the command config
+func (c *Config) Verify() error {
+	if c.Cloud && len(c.File) > 0 {
+		return fmt.Errorf("cannot use --config with --icloud")
+	}
+
+	switch c.Cmd {
+	case "revert":
+		if c.Cloud {
+			iCloudPath, err := getiCloudDrivePath()
+			if err != nil {
+				return fmt.Errorf("get iCloud drive path failed")
+			}
+			host, err := os.Hostname()
+			if err != nil {
+				return fmt.Errorf("failed to get hostname")
+			}
+			c.File = filepath.Join(iCloudPath, ".config", "lporg", strings.TrimRight(host, ".local")+".yml.bak")
+		} else {
+			if len(c.File) == 0 { // set DEFAULT config file
+				confDir, err := os.UserConfigDir()
+				if err != nil {
+					return fmt.Errorf("failed to get user config dir")
+				}
+				c.File = filepath.Join(confDir, "lporg", "config.yml.bak")
+			}
+		}
+	case "load":
+		if len(c.File) == 0 && !c.Cloud {
+			return fmt.Errorf("must supply --config file OR use --icloud")
+		}
+		fallthrough
+	default:
+		if c.Cloud { // use iCloud to store config
+			iCloudPath, err := getiCloudDrivePath()
+			if err != nil {
+				return fmt.Errorf("get iCloud drive path failed")
+			}
+			host, err := os.Hostname()
+			if err != nil {
+				return fmt.Errorf("failed to get hostname")
+			}
+			c.File = filepath.Join(iCloudPath, ".config", "lporg", strings.TrimRight(host, ".local")+".yml")
+		} else {
+			if len(c.File) == 0 { // set DEFAULT config file
+				confDir, err := os.UserConfigDir()
+				if err != nil {
+					return fmt.Errorf("failed to get user config dir")
+				}
+				c.File = filepath.Join(confDir, "lporg", "config.yml")
+			}
+		}
+	}
+
+	if err := os.MkdirAll(filepath.Dir(c.File), 0750); err != nil {
+		return fmt.Errorf("failed to create config dir: %v", err)
+	}
+
+	log.Info("using config file: " + c.File)
+
+	return nil
 }
 
 // add missing apps to pages at 30 apps per page
@@ -158,17 +222,17 @@ func DefaultOrg(c *Config) (err error) {
 
 	// Clear all items related to groups so we can re-create them
 	if err := lpad.ClearGroups(); err != nil {
-		log.WithError(err).Fatal("ClearGroups failed")
+		return fmt.Errorf("failed to ClearGroups: %v", err)
 	}
 
 	// Disable the update triggers
 	if err := lpad.DisableTriggers(); err != nil {
-		log.WithError(err).Fatal("DisableTriggers failed")
+		return fmt.Errorf("failed to DisableTriggers: %v", err)
 	}
 
 	// Add root and holding pages to items and groups
 	if err := lpad.AddRootsAndHoldingPages(); err != nil {
-		log.WithError(err).Fatal("AddRootsAndHoldingPagesfailed")
+		return fmt.Errorf("failed to AddRootsAndHoldingPagesfailed: %v", err)
 	}
 
 	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
@@ -225,18 +289,18 @@ func DefaultOrg(c *Config) (err error) {
 	utils.Indent(log.Info)("creating App folders and adding apps to them")
 	missing, err := lpad.GetMissing(dbconf.Apps, database.ApplicationType)
 	if err != nil {
-		log.WithError(err).Fatal("Default GetMissing=>Apps")
+		return fmt.Errorf("failed to GetMissing=>Apps: %v", err)
 	}
 
 	dbconf.Apps.Pages = parseMissing(missing, dbconf.Apps.Pages)
 	groupID, err = lpad.ApplyConfig(dbconf.Apps, database.ApplicationType, groupID, 1)
 	if err != nil {
-		log.WithError(err).Fatal("Default ApplyConfig==>Apps")
+		return fmt.Errorf("failed to ApplyConfig: %v", err)
 	}
 
 	// Re-enable the update triggers
 	if err := lpad.EnableTriggers(); err != nil {
-		log.WithError(err).Fatal("EnableTriggers failed")
+		return fmt.Errorf("failed to EnableTriggers: %v", err)
 	}
 
 	return restartDock()
@@ -346,14 +410,18 @@ func SaveConfig(c *Config) error {
 		return errors.Wrap(err, "unable to marshall YAML")
 	}
 
-	if err = os.WriteFile(savePath(c.File, c.Cloud), d, 0644); err != nil {
+	if c.Backup {
+		c.File += ".bak"
+	}
+
+	if err = os.WriteFile(c.File, d, 0644); err != nil {
 		return errors.Wrap(err, "unable to write YAML")
 	}
 
 	if c.Backup {
 		log.Infof(bold, "successfully backed up current settings!")
 	} else {
-		log.Infof(bold, "successfully wrote: "+savePath(c.File, c.Cloud))
+		log.Infof(bold, "successfully wrote: "+c.File)
 	}
 
 	return nil
@@ -364,9 +432,9 @@ func LoadConfig(c *Config) error {
 	var lpad database.LaunchPad
 
 	// Read in Config file
-	config, err := database.LoadConfig(savePath(c.File, c.Cloud))
+	config, err := database.LoadConfig(c.File)
 	if err != nil {
-		log.WithError(err).Fatal("database.LoadConfig")
+		return fmt.Errorf("failed to load config file: %v", err)
 	}
 
 	log.Infof(bold, "PARSE LAUCHPAD DATABASE")
@@ -413,17 +481,17 @@ func LoadConfig(c *Config) error {
 
 	// Clear all items related to groups so we can re-create them
 	if err := lpad.ClearGroups(); err != nil {
-		log.WithError(err).Fatal("ClearGroups failed")
+		return fmt.Errorf("failed to ClearGroups: %v", err)
 	}
 
 	// Disable the update triggers
 	if err := lpad.DisableTriggers(); err != nil {
-		log.WithError(err).Fatal("DisableTriggers failed")
+		return fmt.Errorf("failed to DisableTriggers: %v", err)
 	}
 
 	// Add root and holding pages to items and groups
 	if err := lpad.AddRootsAndHoldingPages(); err != nil {
-		log.WithError(err).Fatal("AddRootsAndHoldingPagesfailed")
+		return fmt.Errorf("failed to AddRootsAndHoldingPagesfailed: %v", err)
 	}
 
 	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
@@ -448,18 +516,18 @@ func LoadConfig(c *Config) error {
 	utils.Indent(log.Info)("creating App folders and adding apps to them")
 	missing, err := lpad.GetMissing(config.Apps, database.ApplicationType)
 	if err != nil {
-		log.WithError(err).Fatal("GetMissing=>Apps")
+		return fmt.Errorf("failed to GetMissing=>Apps: %v", err)
 	}
 
 	config.Apps.Pages = parseMissing(missing, config.Apps.Pages)
 	groupID, err = lpad.ApplyConfig(config.Apps, database.ApplicationType, groupID, 1)
 	if err != nil {
-		log.WithError(err).Fatal("ApplyConfig=>Apps")
+		return fmt.Errorf("failed to ApplyConfig=>Apps: %v", err)
 	}
 
 	// Re-enable the update triggers
 	if err := lpad.EnableTriggers(); err != nil {
-		log.WithError(err).Fatal("EnableTriggers failed")
+		return fmt.Errorf("failed to EnableTriggers: %v", err)
 	}
 
 	if len(config.Desktop.Image) > 0 {
@@ -483,7 +551,7 @@ func LoadConfig(c *Config) error {
 			dPlist.AddOther(other)
 		}
 		if err := dPlist.Save(); err != nil {
-			log.WithError(err).Fatal("unable to save dock plist")
+			return fmt.Errorf("failed to save dock plist")
 		}
 	}
 

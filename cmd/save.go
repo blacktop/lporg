@@ -38,12 +38,19 @@ var saveCmd = &cobra.Command{
 			log.SetLevel(log.DebugLevel)
 		}
 
-		log.Info("Saving launchpad settings")
-		return command.SaveConfig(&command.Config{
+		conf := &command.Config{
+			Cmd:      cmd.Use,
 			File:     Config,
 			Cloud:    UseICloud,
 			LogLevel: setLogLevel(Verbose),
-		})
+		}
+
+		if err := conf.Verify(); err != nil {
+			return err
+		}
+
+		log.Info("Saving launchpad settings")
+		return command.SaveConfig(conf)
 	},
 }
 

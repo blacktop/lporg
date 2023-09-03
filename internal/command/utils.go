@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/apex/log"
@@ -15,7 +14,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var PorgAsciiArt = `
+// PorgASCIIArt is the ascii art for the porg
+var PorgASCIIArt = `
                                           '.:/+ooossoo+/:-'
                                      ':+ydNMMMMMMMMMMMMMMMNmyo:'
                                    '.--.''.:ohNMMMMMMMMNho:.''..'
@@ -132,41 +132,6 @@ func removeOldDatabaseFiles(dbpath string) error {
 	}
 
 	return restartDock()
-}
-
-func savePath(confPath string, icloud bool) string {
-
-	if icloud {
-
-		iCloudPath, err := getiCloudDrivePath()
-		if err != nil {
-			log.WithError(err).Fatal("get iCloud drive path failed")
-		}
-
-		if len(confPath) > 0 {
-			return filepath.Join(iCloudPath, confPath)
-		}
-
-		host, err := os.Hostname()
-		if err != nil {
-			log.WithError(err).Fatal("get hostname failed")
-		}
-		host = strings.TrimRight(host, ".local")
-
-		return filepath.Join(iCloudPath, ".launchpad."+host+".yaml")
-	}
-
-	if len(confPath) > 0 {
-		return confPath
-	}
-
-	// get current user
-	user, err := user.Current()
-	if err != nil {
-		log.WithError(err).Fatal("get current user failed")
-	}
-
-	return filepath.Join(user.HomeDir, ".launchpad.yaml")
 }
 
 func getiCloudDrivePath() (string, error) {

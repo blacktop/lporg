@@ -24,6 +24,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/apex/log"
 	"github.com/blacktop/lporg/internal/command"
 	"github.com/spf13/cobra"
@@ -40,33 +42,56 @@ var defaultCmd = &cobra.Command{
 			log.SetLevel(log.DebugLevel)
 		}
 
-		fmt.Println(command.PorgAsciiArt)
+		fmt.Println(command.PorgASCIIArt)
 
 		backup, _ := cmd.Flags().GetBool("backup")
+		yes, _ := cmd.Flags().GetBool("yes")
+
+		conf := &command.Config{
+			Cmd:      cmd.Use,
+			File:     Config,
+			Cloud:    UseICloud,
+			Backup:   backup,
+			LogLevel: setLogLevel(Verbose),
+		}
+
+		if err := conf.Verify(); err != nil {
+			return err
+		}
 
 		if backup {
 			log.Debug("Backing up current launchpad settings")
-			if err := command.SaveConfig(&command.Config{
-				File:     Config,
-				Cloud:    UseICloud,
-				Backup:   true,
-				LogLevel: setLogLevel(Verbose),
-			}); err != nil {
+			if err := command.SaveConfig(conf); err != nil {
 				return err
 			}
 		}
 
+		if !yes {
+			prompt := &survey.Confirm{
+				Message: "Organize launchpad with default config?",
+			}
+			if err := survey.AskOne(prompt, &yes); err == terminal.InterruptErr {
+				log.Warn("Exiting...")
+				return nil
+			}
+			if !yes {
+				return nil
+			}
+		}
+
 		log.Info("Apply default launchpad settings")
-		return command.DefaultOrg(&command.Config{
-			File:     Config,
-			Cloud:    UseICloud,
-			LogLevel: setLogLevel(Verbose),
-		})
+		return command.DefaultOrg(conf)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(defaultCmd)
 
+	defaultCmd.Flags().BoolP("yes", "y", false, "Do not prompt user for confirmation")
 	defaultCmd.Flags().BoolP("backup", "b", false, "Backup current launchpad settings")
+	defaultCmd.SetHelpFunc(func(c *cobra.Command, s []string) {
+		rootCmd.PersistentFlags().MarkHidden("config")
+		rootCmd.PersistentFlags().MarkHidden("icloud")
+		c.Parent().HelpFunc()(c, s)
+	})
 }

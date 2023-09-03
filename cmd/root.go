@@ -68,8 +68,8 @@ func init() {
 	log.SetHandler(clihander.Default)
 
 	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "V", false, "verbose output")
-	rootCmd.PersistentFlags().StringVarP(&Config, "config", "c", "", "config file (default is $HOME/.lporg.yaml)")
-	rootCmd.PersistentFlags().BoolVar(&UseICloud, "icloud", false, "iCloud config")
+	rootCmd.PersistentFlags().StringVarP(&Config, "config", "c", "", "config file (default is $CONFIG/lporg/config.yaml)")
+	rootCmd.PersistentFlags().BoolVar(&UseICloud, "icloud", false, "use iCloud for config")
 	// Settings
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 }

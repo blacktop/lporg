@@ -37,13 +37,13 @@ dry_release: ## Run goreleaser without releasing/pushing artifacts to github
 .PHONY: snapshot
 snapshot: ## Run goreleaser snapshot
 	@echo " > Creating Snapshot ${NEXT_VERSION}"
-	@goreleaser --rm-dist --snapshot
+	@goreleaser --clean --snapshot
 
 .PHONY: release
 release: ## Create a new release from the NEXT_VERSION
 	@echo " > Creating Release ${NEXT_VERSION}"
 	@.hack/make/release ${NEXT_VERSION}
-	@goreleaser --rm-dist
+	@goreleaser --clean
 
 .PHONY: destroy
 destroy: ## Remove release for the CUR_VERSION

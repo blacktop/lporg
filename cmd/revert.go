@@ -40,13 +40,19 @@ var revertCmd = &cobra.Command{
 			log.SetLevel(log.DebugLevel)
 		}
 
-		log.Info("Reverting launchpad settings")
-		return command.LoadConfig(&command.Config{
+		conf := &command.Config{
+			Cmd:      cmd.Use,
 			File:     Config,
 			Cloud:    UseICloud,
 			LogLevel: setLogLevel(Verbose),
-		})
+		}
 
+		if err := conf.Verify(); err != nil {
+			return err
+		}
+
+		log.Info("Reverting launchpad settings")
+		return command.LoadConfig(conf)
 	},
 }
 

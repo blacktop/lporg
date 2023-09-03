@@ -22,6 +22,10 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
+
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/apex/log"
 	"github.com/blacktop/lporg/internal/command"
 	"github.com/spf13/cobra"
@@ -39,25 +43,42 @@ var loadCmd = &cobra.Command{
 		}
 
 		backup, _ := cmd.Flags().GetBool("backup")
+		yes, _ := cmd.Flags().GetBool("yes")
 
-		if backup {
+		conf := &command.Config{
+			Cmd:      cmd.Use,
+			File:     Config,
+			Cloud:    UseICloud,
+			Backup:   backup,
+			LogLevel: setLogLevel(Verbose),
+		}
+
+		if err := conf.Verify(); err != nil {
+			return err
+		}
+
+		if conf.Backup {
 			log.Debug("Backing up current launchpad settings")
-			if err := command.SaveConfig(&command.Config{
-				File:     Config,
-				Cloud:    UseICloud,
-				Backup:   true,
-				LogLevel: setLogLevel(Verbose),
-			}); err != nil {
+			if err := command.SaveConfig(conf); err != nil {
 				return err
 			}
 		}
 
+		if !yes {
+			prompt := &survey.Confirm{
+				Message: fmt.Sprintf("Load launchpad config '%s'?", conf.File),
+			}
+			if err := survey.AskOne(prompt, &yes); err == terminal.InterruptErr {
+				log.Warn("Exiting...")
+				return nil
+			}
+			if !yes {
+				return nil
+			}
+		}
+
 		log.Info("Loading launchpad settings")
-		return command.LoadConfig(&command.Config{
-			File:     Config,
-			Cloud:    UseICloud,
-			LogLevel: setLogLevel(Verbose),
-		})
+		return command.LoadConfig(conf)
 	},
 }
 
@@ -65,4 +86,5 @@ func init() {
 	rootCmd.AddCommand(loadCmd)
 
 	loadCmd.Flags().BoolP("backup", "b", false, "Backup current launchpad settings")
+	loadCmd.Flags().BoolP("yes", "y", false, "Do not prompt user for confirmation")
 }

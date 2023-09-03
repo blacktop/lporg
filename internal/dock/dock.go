@@ -19,7 +19,7 @@ type Plist struct {
 	PersistentApps              []PAItem `plist:"persistent-apps"`
 	PersistentOthers            []POItem `plist:"persistent-others"`
 	AutoHide                    bool     `plist:"autohide"`
-	Largesize                   float64  `plist:"largesize"`
+	Largesize                   any      `plist:"largesize"`
 	Loc                         string   `plist:"loc"`
 	Magnification               bool     `plist:"magnification"`
 	MinimizeToApplication       bool     `plist:"minimize-to-application"`
@@ -32,7 +32,7 @@ type Plist struct {
 	Region                      string   `plist:"region"`
 	ShowRecents                 bool     `plist:"show-recents"`
 	ShowAppExposeGestureEnabled bool     `plist:"showAppExposeGestureEnabled"`
-	TileSize                    float64  `plist:"tilesize"`
+	TileSize                    any      `plist:"tilesize"`
 	TrashFull                   bool     `plist:"trash-full"`
 	Version                     int      `plist:"version"`
 	WvousBlCorner               int      `plist:"wvous-bl-corner,omitempty"`
@@ -109,15 +109,20 @@ func fileNameWithoutExtTrimSuffix(fileName string) string {
 }
 
 // LoadDockPlist loads the dock plist into struct
-func LoadDockPlist() (*Plist, error) {
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user home directory: %v", err)
+func LoadDockPlist(path ...string) (*Plist, error) {
+	var dpath string
+	if len(path) > 0 {
+		dpath = path[0]
+	} else {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get user home directory: %v", err)
+		}
+		dpath = filepath.Join(home, dockPlistPath)
 	}
 
 	// read users dock plist
-	pfile, err := os.Open(filepath.Join(home, dockPlistPath))
+	pfile, err := os.Open(dpath)
 	if err != nil {
 		return nil, err
 	}
