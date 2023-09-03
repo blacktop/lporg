@@ -565,27 +565,30 @@ func LoadConfig(c *Config) error {
 		desktop.SetDesktopImage(config.Desktop.Image)
 	}
 
-	// if len(config.Dock.Apps) > 0 || len(config.Dock.Others) > 0 { // FIXME: this isn't working
-	// 	utils.Indent(log.Info)("setting dock apps")
-	// 	dPlist, err := dock.LoadDockPlist()
-	// 	if err != nil {
-	// 		return errors.Wrap(err, "unable to load dock plist")
-	// 	}
-	// 	if len(dPlist.PersistentApps) > 0 {
-	// 		dPlist.PersistentApps = []dock.PAItem{dPlist.PersistentApps[0]} // remove all apps except for Launchpad
-	// 	}
-	// 	for _, app := range config.Dock.Apps {
-	// 		utils.DoubleIndent(log.WithField("app", app).Info)("adding app to dock")
-	// 		dPlist.AddApp(app)
-	// 	}
-	// 	for _, other := range config.Dock.Others {
-	// 		utils.DoubleIndent(log.WithField("other", other).Info)("adding other to dock")
-	// 		dPlist.AddOther(other)
-	// 	}
-	// 	if err := dPlist.Save(); err != nil {
-	// 		return fmt.Errorf("failed to save dock plist: %w", err)
-	// 	}
-	// }
+	if len(config.Dock.Apps) > 0 || len(config.Dock.Others) > 0 {
+		utils.Indent(log.Info)("setting dock apps")
+		dPlist, err := dock.LoadDockPlist()
+		if err != nil {
+			return errors.Wrap(err, "unable to load dock plist")
+		}
+		if len(dPlist.PersistentApps) > 0 {
+			clear(dPlist.PersistentApps) // remove all apps from dock
+		}
+		for _, app := range config.Dock.Apps {
+			utils.DoubleIndent(log.WithField("app", app).Info)("adding app to dock")
+			dPlist.AddApp(app)
+		}
+		if len(dPlist.PersistentOthers) > 0 {
+			clear(dPlist.PersistentOthers) // remove all folders from dock
+		}
+		for _, other := range config.Dock.Others {
+			utils.DoubleIndent(log.WithField("other", other).Info)("adding other to dock")
+			dPlist.AddOther(other)
+		}
+		if err := dPlist.Save(); err != nil {
+			return fmt.Errorf("failed to save dock plist: %w", err)
+		}
+	}
 
 	return restartDock()
 }
