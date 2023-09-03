@@ -172,8 +172,8 @@ func (p *Plist) AddOther(otherPath string) error {
 		GUID:     rand.Intn(9999999999),
 		TileType: "directory-tile",
 		TileData: POTileData{
-			Arrangement: index,
-			ShowAs:      index - 1,
+			ShowAs:      index,
+			Arrangement: index + 1,
 			FileData: FileData{
 				URLString:     strings.Replace(fmt.Sprintf("file://%s/", otherPath), " ", "%20", -1),
 				URLStringType: 15,
