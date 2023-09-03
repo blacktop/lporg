@@ -9,9 +9,9 @@ import (
 
 	"github.com/apex/log"
 	"github.com/blacktop/lporg/internal/utils"
+	"github.com/jinzhu/gorm"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
-	"gorm.io/gorm"
 )
 
 // GetMissing returns a list of the rest of the apps not in the config
@@ -238,7 +238,7 @@ func (lp *LaunchPad) updateItem(item string, ordering, groupID, itemType int) er
 			return errors.Wrap(err, "item query failed for app: "+item)
 		}
 
-		lp.DB.Model(&i).Association("App").Find(&i.App)
+		lp.DB.Model(&i).Related(&i.App)
 	case WidgetType:
 		if result := lp.DB.Where("title = ?", item).First(&w); result.Error != nil && errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			utils.DoubleIndent(log.WithField("app", item).Warn)("widget not installed. SKIPPING...")
@@ -248,7 +248,7 @@ func (lp *LaunchPad) updateItem(item string, ordering, groupID, itemType int) er
 			return errors.Wrap(err, "item query failed for widget: "+item)
 		}
 
-		lp.DB.Model(&i).Association("Widget").Find(&i.Widget)
+		lp.DB.Model(&i).Related(&i.Widget)
 	default:
 		utils.DoubleIndent(log.WithField("type", itemType).Error)("bad type")
 	}
