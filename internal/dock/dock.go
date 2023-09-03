@@ -4,6 +4,7 @@ package dock
 import (
 	"context"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -206,6 +207,19 @@ func (p *Plist) Save() error {
 		return fmt.Errorf("failed to open plist: %w", err)
 	}
 	defer pfile.Close()
+
+	bak, err := os.Create(filepath.Join(home, dockPlistPath) + ".bak")
+	if err != nil {
+		return fmt.Errorf("failed to create backup plist: %w", err)
+	}
+	defer bak.Close()
+
+	if _, err := io.Copy(bak, pfile); err != nil { // backup previous plist
+		return fmt.Errorf("failed to backup plist: %w", err)
+	}
+	if _, err := pfile.Seek(0, 0); err != nil { // reset file pointer
+		return fmt.Errorf("failed to reset plist file pointer: %w", err)
+	}
 
 	if err := plist.NewDecoder(pfile).Decode(p); err != nil {
 		return fmt.Errorf("failed to decode plist: %w", err)
