@@ -575,14 +575,14 @@ func LoadConfig(c *Config) error {
 			clear(dPlist.PersistentApps) // remove all apps from dock
 		}
 		for _, app := range config.Dock.Apps {
-			utils.DoubleIndent(log.WithField("app", app).Info)("adding app to dock")
+			utils.DoubleIndent(log.WithField("app", app).Info)("adding to dock")
 			dPlist.AddApp(app)
 		}
 		if len(dPlist.PersistentOthers) > 0 {
 			clear(dPlist.PersistentOthers) // remove all folders from dock
 		}
 		for _, other := range config.Dock.Others {
-			utils.DoubleIndent(log.WithField("other", other).Info)("adding other to dock")
+			utils.DoubleIndent(log.WithField("other", other).Info)("adding to dock")
 			dPlist.AddOther(other)
 		}
 		if err := dPlist.Save(); err != nil {
