@@ -533,13 +533,15 @@ func LoadConfig(c *Config) error {
 		desktop.SetDesktopImage(config.Desktop.Image)
 	}
 
-	// if len(config.Dock.Apps) > 0 || len(config.Dock.Others) > 0 { FIXME: this isn't working
+	// if len(config.Dock.Apps) > 0 || len(config.Dock.Others) > 0 { // FIXME: this isn't working
 	// 	utils.Indent(log.Info)("setting dock apps")
 	// 	dPlist, err := dock.LoadDockPlist()
 	// 	if err != nil {
 	// 		return errors.Wrap(err, "unable to load dock plist")
 	// 	}
-	// 	dPlist.PersistentApps = []dock.PAItem{dPlist.PersistentApps[0]} // remove all apps except for Launchpad
+	// 	if len(dPlist.PersistentApps) > 0 {
+	// 		dPlist.PersistentApps = []dock.PAItem{dPlist.PersistentApps[0]} // remove all apps except for Launchpad
+	// 	}
 	// 	for _, app := range config.Dock.Apps {
 	// 		utils.DoubleIndent(log.WithField("app", app).Info)("adding app to dock")
 	// 		dPlist.AddApp(app)
