@@ -1,6 +1,10 @@
 package utils
 
 import (
+	"context"
+	"fmt"
+	"os/exec"
+
 	"github.com/apex/log"
 	"github.com/apex/log/handlers/cli"
 )
@@ -63,4 +67,30 @@ func checkError(err error) {
 	if err != nil {
 		log.WithError(err).Fatal("failed")
 	}
+}
+
+// RunCommand runs cmd on file
+func RunCommand(ctx context.Context, cmd string, args ...string) (string, error) {
+
+	var c *exec.Cmd
+
+	if ctx != nil {
+		c = exec.CommandContext(ctx, cmd, args...)
+	} else {
+		c = exec.Command(cmd, args...)
+	}
+
+	output, err := c.Output()
+	if err != nil {
+		return string(output), err
+	}
+
+	// check for exec context timeout
+	if ctx != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return "", fmt.Errorf("command %s timed out", cmd)
+		}
+	}
+
+	return string(output), nil
 }

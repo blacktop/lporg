@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blacktop/lporg/internal/command"
+	"github.com/blacktop/lporg/internal/utils"
 	"howett.net/plist"
 )
 
@@ -229,7 +229,7 @@ func (p *Plist) Save() error {
 }
 
 func (p *Plist) kickstart() error {
-	out, err := command.RunCommand(context.Background(), "/bin/launchctl", "kickstart", "-k", fmt.Sprintf("gui/%d/com.apple.Dock.agent", os.Getuid()))
+	out, err := utils.RunCommand(context.Background(), "/bin/launchctl", "kickstart", "-k", fmt.Sprintf("gui/%d/com.apple.Dock.agent", os.Getuid()))
 	if err != nil {
 		return fmt.Errorf("failed to kickstart dock: %v", err)
 	}

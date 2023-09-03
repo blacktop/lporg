@@ -8,7 +8,7 @@ import (
 	"sort"
 
 	"github.com/apex/log"
-	"github.com/blacktop/lporg/internal/database/utils"
+	"github.com/blacktop/lporg/internal/utils"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"

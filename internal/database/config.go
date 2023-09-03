@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/apex/log"
-	"github.com/blacktop/lporg/internal/database/utils"
+	"github.com/blacktop/lporg/internal/utils"
 	yaml "gopkg.in/yaml.v3"
 )
 

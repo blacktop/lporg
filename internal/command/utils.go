@@ -2,15 +2,13 @@ package command
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"os/exec"
 	"os/user"
 	"path/filepath"
 	"time"
 
 	"github.com/apex/log"
-	"github.com/blacktop/lporg/internal/database/utils"
+	"github.com/blacktop/lporg/internal/utils"
 	"github.com/pkg/errors"
 )
 
@@ -71,37 +69,11 @@ var PorgASCIIArt = `
 
 `
 
-// RunCommand runs cmd on file
-func RunCommand(ctx context.Context, cmd string, args ...string) (string, error) {
-
-	var c *exec.Cmd
-
-	if ctx != nil {
-		c = exec.CommandContext(ctx, cmd, args...)
-	} else {
-		c = exec.Command(cmd, args...)
-	}
-
-	output, err := c.Output()
-	if err != nil {
-		return string(output), err
-	}
-
-	// check for exec context timeout
-	if ctx != nil {
-		if ctx.Err() == context.DeadlineExceeded {
-			return "", fmt.Errorf("command %s timed out", cmd)
-		}
-	}
-
-	return string(output), nil
-}
-
 func restartDock() error {
 	ctx := context.Background()
 
 	utils.Indent(log.Info)("restarting Dock")
-	if _, err := RunCommand(ctx, "killall", "Dock"); err != nil {
+	if _, err := utils.RunCommand(ctx, "killall", "Dock"); err != nil {
 		return errors.Wrap(err, "killing Dock process failed")
 	}
 

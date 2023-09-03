@@ -11,9 +11,9 @@ import (
 
 	"github.com/apex/log"
 	"github.com/blacktop/lporg/internal/database"
-	"github.com/blacktop/lporg/internal/database/utils"
 	"github.com/blacktop/lporg/internal/desktop"
 	"github.com/blacktop/lporg/internal/dock"
+	"github.com/blacktop/lporg/internal/utils"
 	"github.com/glebarez/sqlite"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
