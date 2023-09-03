@@ -23,6 +23,7 @@ This project is meant to help people setting up a brand new Mac **or** to keep a
 - `macOS 10.12` _(Sierra)_
 - `macOS 10.13.2` _(High Sierra)_
 - `macOS 10.13.3` _(High Sierra)_
+- `macOS 14beta7` _(Sonoma)_
 
 ## Install
 
@@ -72,12 +73,12 @@ Organize your launchpad apps using the default Apple app categories as folders
 $ lporg save
 ```
 
-Save your current launchpad app layout to a `launchpad.yaml` file
+Save your current launchpad app layout to a `lporg.yml` file
 
 ### Load
 
 ```sh
-$ lporg load launchpad.yaml
+$ lporg load lporg.yml
 ```
 
 Load a launchpad app layout from a YAML config file
@@ -88,7 +89,7 @@ Load a launchpad app layout from a YAML config file
 $ lporg revert
 ```
 
-Revert a launchpad app layout to the backed up version stored at `$HOME/.launchpad.yml`
+Revert a launchpad app layout to the backed up version stored at `$CONFIG/lporg/config.yml`
 
 ### Example Configs
 
@@ -97,15 +98,12 @@ Revert a launchpad app layout to the backed up version stored at `$HOME/.launchp
 ## TODO
 
 - [ ] create Brewfile from unfound apps IF they are installable via brew?
-- [ ] add ability to save/load JSON as well as YAML
 - [ ] add ability to save/load private gist configs
-- [ ] add ability to org dock as well `dorg` ? (in progress)
 - [ ] add ability to have desktop image be a URL and it will download and check sha256, save in `.lporg` folder and add to desktop
-- [ ] add ability to set multiple desktop images
-- [x] add ability to save/load to/from iCloud Drive `~/Library/Mobile\ Documents/com~apple~CloudDocs`
-- [x] backup current launchpad layout before changing
-- [x] write backup config to `$HOME/.launchpad.yml`
-- [ ] create a macOS VM to test on a much crazier collection of apps. See Issue [#1](https://github.com/blacktop/lporg/issues/1)
+
+## Known Issue
+
+If `lporg` creates a launchpad folder with only 1 app in it, then when you reboot Apple will remove ALL the folders due to it not supporting single app folders and it believing that it is in a broken state.
 
 ## Issues
 
