@@ -3,7 +3,6 @@ package command
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -234,8 +233,8 @@ func DefaultOrg(c *Config) (err error) {
 	}
 
 	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
-	groupID := int(float64(lpad.GetMaxAppID()))
 	// groupID := int(math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID())))
+	groupID := int(float64(lpad.GetMaxAppID())) // widgets are no longer supported
 
 	utils.Indent(log.Info)("creating folders out of app categories")
 
@@ -493,7 +492,8 @@ func LoadConfig(c *Config) error {
 	}
 
 	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
-	groupID := int(math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID())))
+	// groupID := int(math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID())))
+	groupID := int(float64(lpad.GetMaxAppID())) // widgets are no longer supported
 
 	////////////////////////////////////////////////////////////////////
 	// Place Widgets ///////////////////////////////////////////////////

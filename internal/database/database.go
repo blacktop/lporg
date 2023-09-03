@@ -367,6 +367,7 @@ func (lp *LaunchPad) GetMaxAppID() int {
 }
 
 // GetMaxWidgetID returns the maximum Widget ItemID
+// deprecated
 func (lp *LaunchPad) GetMaxWidgetID() int {
 	var widgets []Widget
 
