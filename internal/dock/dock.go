@@ -2,6 +2,7 @@
 package dock
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blacktop/lporg/internal/command"
 	"howett.net/plist"
 )
 
@@ -191,6 +193,8 @@ func (p *Plist) AddOther(otherPath string) error {
 // Save saves the dock plist from struct
 func (p *Plist) Save() error {
 
+	p.ModCount++
+
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("failed to get user home directory: %v", err)
@@ -199,9 +203,22 @@ func (p *Plist) Save() error {
 	// read users dock plist
 	pfile, err := os.Open(filepath.Join(home, dockPlistPath))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open plist: %w", err)
 	}
 	defer pfile.Close()
 
-	return plist.NewDecoder(pfile).Decode(p)
+	if err := plist.NewDecoder(pfile).Decode(p); err != nil {
+		return fmt.Errorf("failed to decode plist: %w", err)
+	}
+
+	return p.kickstart()
+}
+
+func (p *Plist) kickstart() error {
+	out, err := command.RunCommand(context.Background(), "/bin/launchctl", "kickstart", "-k", fmt.Sprintf("gui/%d/com.apple.Dock.agent", os.Getuid()))
+	if err != nil {
+		return fmt.Errorf("failed to kickstart dock: %v", err)
+	}
+	fmt.Println(out)
+	return nil
 }
