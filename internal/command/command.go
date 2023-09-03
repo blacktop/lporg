@@ -87,7 +87,7 @@ func (c *Config) Verify() error {
 	}
 
 	if err := os.MkdirAll(filepath.Dir(c.File), 0750); err != nil {
-		return fmt.Errorf("failed to create config dir: %v", err)
+		return fmt.Errorf("failed to create config dir: %w", err)
 	}
 
 	log.Info("using config file: " + c.File)
@@ -201,14 +201,14 @@ func DefaultOrg(c *Config) (err error) {
 	}
 
 	// open launchpad database
-	db, err := gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
+	lpad.DB, err = gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.LogLevel(c.LogLevel)),
 	})
 	if err != nil {
 		return err
 	}
 	defer func() {
-		db, err := db.DB()
+		db, err := lpad.DB.DB()
 		if err != nil {
 			err = errors.Wrap(err, "unable to get db when trying to close")
 		}
@@ -218,21 +218,19 @@ func DefaultOrg(c *Config) (err error) {
 		}
 	}()
 
-	lpad.DB = db
-
 	// Clear all items related to groups so we can re-create them
 	if err := lpad.ClearGroups(); err != nil {
-		return fmt.Errorf("failed to ClearGroups: %v", err)
+		return fmt.Errorf("failed to ClearGroups: %w", err)
 	}
 
 	// Disable the update triggers
 	if err := lpad.DisableTriggers(); err != nil {
-		return fmt.Errorf("failed to DisableTriggers: %v", err)
+		return fmt.Errorf("failed to DisableTriggers: %w", err)
 	}
 
 	// Add root and holding pages to items and groups
 	if err := lpad.AddRootsAndHoldingPages(); err != nil {
-		return fmt.Errorf("failed to AddRootsAndHoldingPagesfailed: %v", err)
+		return fmt.Errorf("failed to AddRootsAndHoldingPagesfailed: %w", err)
 	}
 
 	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
@@ -248,7 +246,7 @@ func DefaultOrg(c *Config) (err error) {
 
 	page := database.Page{Number: 1}
 
-	if err := db.Find(&categories).Error; err != nil {
+	if err := lpad.DB.Find(&categories).Error; err != nil {
 		log.WithError(err).Error("categories query failed")
 	}
 
@@ -257,7 +255,7 @@ func DefaultOrg(c *Config) (err error) {
 		folder := database.AppFolder{Name: folderName}
 		folderPage := database.FolderPage{Number: 1}
 		utils.DoubleIndent(log.WithField("folder", folderName).Info)("adding folder")
-		if err := db.Where("category_id = ?", category.ID).Find(&apps).Error; err != nil {
+		if err := lpad.DB.Where("category_id = ?", category.ID).Find(&apps).Error; err != nil {
 			log.WithError(err).Error("categories query failed")
 		}
 		for _, app := range apps {
@@ -307,7 +305,7 @@ func DefaultOrg(c *Config) (err error) {
 }
 
 // SaveConfig will save your launchpad settings to a config file
-func SaveConfig(c *Config) error {
+func SaveConfig(c *Config) (err error) {
 	var (
 		lpad          database.LaunchPad
 		launchpadRoot int
@@ -330,14 +328,14 @@ func SaveConfig(c *Config) error {
 	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
 
 	// open launchpad database
-	db, err := gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
+	lpad.DB, err = gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.LogLevel(c.LogLevel)),
 	})
 	if err != nil {
 		return err
 	}
 	defer func() {
-		db, err := db.DB()
+		db, err := lpad.DB.DB()
 		if err != nil {
 			err = errors.Wrap(err, "unable to get db when trying to close")
 		}
@@ -348,7 +346,7 @@ func SaveConfig(c *Config) error {
 	}()
 
 	// get launchpad and dashboard roots
-	if err := db.Where("key in (?)", []string{"launchpad_root", "dashboard_root"}).Find(&dbinfo).Error; err != nil {
+	if err := lpad.DB.Where("key in (?)", []string{"launchpad_root", "dashboard_root"}).Find(&dbinfo).Error; err != nil {
 		log.WithError(err).Error("dbinfo query failed")
 	}
 	for _, info := range dbinfo {
@@ -363,7 +361,7 @@ func SaveConfig(c *Config) error {
 	}
 
 	// get all the relavent items
-	if err := db.Not("uuid in (?)", []string{"ROOTPAGE", "HOLDINGPAGE", "ROOTPAGE_DB", "HOLDINGPAGE_DB", "ROOTPAGE_VERS", "HOLDINGPAGE_VERS"}).
+	if err := lpad.DB.Not("uuid in (?)", []string{"ROOTPAGE", "HOLDINGPAGE", "ROOTPAGE_DB", "HOLDINGPAGE_DB", "ROOTPAGE_VERS", "HOLDINGPAGE_VERS"}).
 		Order("items.parent_id, items.ordering").
 		Find(&items).Error; err != nil {
 		log.WithError(err).Error("items query failed")
@@ -373,9 +371,9 @@ func SaveConfig(c *Config) error {
 	log.Info("collecting launchpad/dashboard pages")
 	parentMapping := make(map[int][]database.Item)
 	for _, item := range items {
-		db.Model(&item).Association("App").Find(&item.App)
+		lpad.DB.Model(&item).Association("App").Find(&item.App)
 		// db.Model(&item).Related(&item.Widget)
-		db.Model(&item).Association("Group").Find(&item.Group)
+		lpad.DB.Model(&item).Association("Group").Find(&item.Group)
 
 		parentMapping[item.ParentID] = append(parentMapping[item.ParentID], item)
 	}
@@ -462,14 +460,14 @@ func LoadConfig(c *Config) error {
 	}
 
 	// open launchpad database
-	db, err := gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
+	lpad.DB, err = gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.LogLevel(c.LogLevel)),
 	})
 	if err != nil {
 		return err
 	}
 	defer func() {
-		db, err := db.DB()
+		db, err := lpad.DB.DB()
 		if err != nil {
 			err = errors.Wrap(err, "unable to get db when trying to close")
 		}
@@ -535,25 +533,25 @@ func LoadConfig(c *Config) error {
 		desktop.SetDesktopImage(config.Desktop.Image)
 	}
 
-	if len(config.Dock.Apps) > 0 || len(config.Dock.Others) > 0 {
-		utils.Indent(log.Info)("setting dock apps")
-		dPlist, err := dock.LoadDockPlist()
-		if err != nil {
-			return errors.Wrap(err, "unable to load dock plist")
-		}
-		dPlist.PersistentApps = []dock.PAItem{dPlist.PersistentApps[0]} // remove all apps except for Launchpad
-		for _, app := range config.Dock.Apps {
-			utils.DoubleIndent(log.WithField("app", app).Info)("adding app to dock")
-			dPlist.AddApp(app)
-		}
-		for _, other := range config.Dock.Others {
-			utils.DoubleIndent(log.WithField("other", other).Info)("adding other to dock")
-			dPlist.AddOther(other)
-		}
-		if err := dPlist.Save(); err != nil {
-			return fmt.Errorf("failed to save dock plist")
-		}
-	}
+	// if len(config.Dock.Apps) > 0 || len(config.Dock.Others) > 0 { FIXME: this isn't working
+	// 	utils.Indent(log.Info)("setting dock apps")
+	// 	dPlist, err := dock.LoadDockPlist()
+	// 	if err != nil {
+	// 		return errors.Wrap(err, "unable to load dock plist")
+	// 	}
+	// 	dPlist.PersistentApps = []dock.PAItem{dPlist.PersistentApps[0]} // remove all apps except for Launchpad
+	// 	for _, app := range config.Dock.Apps {
+	// 		utils.DoubleIndent(log.WithField("app", app).Info)("adding app to dock")
+	// 		dPlist.AddApp(app)
+	// 	}
+	// 	for _, other := range config.Dock.Others {
+	// 		utils.DoubleIndent(log.WithField("other", other).Info)("adding other to dock")
+	// 		dPlist.AddOther(other)
+	// 	}
+	// 	if err := dPlist.Save(); err != nil {
+	// 		return fmt.Errorf("failed to save dock plist: %w", err)
+	// 	}
+	// }
 
 	return restartDock()
 }

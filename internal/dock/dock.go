@@ -203,5 +203,5 @@ func (p *Plist) Save() error {
 	}
 	defer pfile.Close()
 
-	return plist.NewDecoder(pfile).Decode(&p)
+	return plist.NewDecoder(pfile).Decode(p)
 }
