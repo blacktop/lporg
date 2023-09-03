@@ -23,13 +23,13 @@ type Apps struct {
 
 // Page is a launchpad page object
 type Page struct {
-	Number int           `yaml:"number" json:"number"`
-	Items  []interface{} `yaml:"items,omitempty" json:"items,omitempty"`
+	Number int   `yaml:"number" json:"number"`
+	Items  []any `yaml:"items,omitempty" json:"items,omitempty"`
 }
 
 // AppFolder is a launchpad folder object
 type AppFolder struct {
-	Name  string       `yaml:"folder,omitempty" json:"folder,omitempty" mapstructure:"folder"`
+	Name  string       `yaml:"folder" json:"folder,omitempty" mapstructure:"folder"`
 	Pages []FolderPage `yaml:"pages,omitempty" json:"pages,omitempty"`
 }
 
