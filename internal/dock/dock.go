@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/apex/log"
 	"github.com/blacktop/lporg/internal/database"
@@ -59,10 +58,10 @@ type TileData struct {
 	BundleIdentifier string   `plist:"bundle-identifier,omitempty"`
 	Book             []byte   `plist:"book,omitempty"`
 	DockExtra        bool     `plist:"dock-extra,omitempty"`
-	FileData         FileData `plist:"file-data,omitempty"`
-	FileLabel        string   `plist:"file-label,omitempty"`
+	FileData         FileData `plist:"file-data"`
+	FileLabel        string   `plist:"file-label"`
 	FileModDate      int64    `plist:"file-mod-date,omitempty"`
-	FileType         int      `plist:"file-type,omitempty"`
+	FileType         int      `plist:"file-type"`
 	IsBeta           bool     `plist:"is-beta,omitempty"`
 	ParentModDate    int64    `plist:"parent-mod-date,omitempty"`
 }
@@ -90,16 +89,16 @@ type POItem struct {
 // POTileData is a persistent-others item title-data object
 type POTileData struct {
 	Arrangement       int      `plist:"arrangement"`
-	Book              []byte   `plist:"book"`
 	DisplayAs         int      `plist:"displayas"`
+	ShowAs            int      `plist:"showas"`
 	FileData          FileData `plist:"file-data"`
 	FileLabel         string   `plist:"file-label"`
-	FileModDate       int64    `plist:"file-mod-date"`
 	FileType          int      `plist:"file-type"`
-	IsBeta            bool     `plist:"is-beta"`
-	ParentModDate     int64    `plist:"parent-mod-date"`
-	PreferredItemSize int      `plist:"preferreditemsize"`
-	ShowAs            int      `plist:"showas"`
+	FileModDate       int64    `plist:"file-mod-date,omitempty"`
+	IsBeta            bool     `plist:"is-beta,omitempty"`
+	ParentModDate     int64    `plist:"parent-mod-date,omitempty"`
+	PreferredItemSize int      `plist:"preferreditemsize,omitempty"`
+	Book              []byte   `plist:"book,omitempty"`
 	Directory         int      `plist:"directory,omitempty"`
 }
 
@@ -150,16 +149,12 @@ func (p *Plist) AddApp(appPath string) error {
 		GUID:     rand.Intn(9999999999),
 		TileType: "file-tile",
 		TileData: TileData{
-			DockExtra:     false,
-			ParentModDate: time.Now().Unix(),
-			FileType:      41,
 			FileData: FileData{
 				URLString:     strings.Replace(fmt.Sprintf("file://%s/", appPath), " ", "%20", -1),
 				URLStringType: 0,
 			},
-			FileLabel:        fileNameWithoutExtTrimSuffix(appPath),
-			FileModDate:      time.Now().Unix(),
-			BundleIdentifier: "",
+			FileLabel: fileNameWithoutExtTrimSuffix(appPath),
+			FileType:  41,
 		},
 	}
 
@@ -182,11 +177,8 @@ func (p *Plist) AddOther(other database.Folder) error {
 				URLString:     strings.Replace(fmt.Sprintf("file://%s/", other.Path), " ", "%20", -1),
 				URLStringType: 0,
 			},
-			FileLabel:         fileNameWithoutExtTrimSuffix(other.Path),
-			FileModDate:       time.Now().Unix(),
-			FileType:          2,
-			ParentModDate:     time.Now().Unix(),
-			PreferredItemSize: -1,
+			FileLabel: fileNameWithoutExtTrimSuffix(other.Path),
+			FileType:  2,
 		},
 	}
 
