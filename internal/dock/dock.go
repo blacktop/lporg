@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apex/log"
 	"github.com/blacktop/lporg/internal/utils"
 	"howett.net/plist"
 )
@@ -152,7 +153,7 @@ func (p *Plist) AddApp(appPath string) error {
 			FileType:      41,
 			FileData: FileData{
 				URLString:     strings.Replace(fmt.Sprintf("file://%s/", appPath), " ", "%20", -1),
-				URLStringType: 15,
+				URLStringType: 0,
 			},
 			FileLabel:        fileNameWithoutExtTrimSuffix(appPath),
 			FileModDate:      time.Now().Unix(),
@@ -176,7 +177,7 @@ func (p *Plist) AddOther(otherPath string) error {
 			Arrangement: index + 1,
 			FileData: FileData{
 				URLString:     strings.Replace(fmt.Sprintf("file://%s/", otherPath), " ", "%20", -1),
-				URLStringType: 15,
+				URLStringType: 0,
 			},
 			FileLabel:         fileNameWithoutExtTrimSuffix(otherPath),
 			FileModDate:       time.Now().Unix(),
@@ -196,39 +197,55 @@ func (p *Plist) Save() error {
 
 	p.ModCount++
 
+	// backup previous plist
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("failed to get user home directory: %v", err)
 	}
-
-	// read users dock plist
 	pfile, err := os.Open(filepath.Join(home, dockPlistPath))
 	if err != nil {
 		return fmt.Errorf("failed to open plist: %w", err)
 	}
 	defer pfile.Close()
-
 	bak, err := os.Create(filepath.Join(home, dockPlistPath) + ".bak")
 	if err != nil {
 		return fmt.Errorf("failed to create backup plist: %w", err)
 	}
 	defer bak.Close()
-
-	if _, err := io.Copy(bak, pfile); err != nil { // backup previous plist
+	if _, err := io.Copy(bak, pfile); err != nil {
 		return fmt.Errorf("failed to backup plist: %w", err)
 	}
-	if _, err := pfile.Seek(0, 0); err != nil { // reset file pointer
-		return fmt.Errorf("failed to reset plist file pointer: %w", err)
-	}
 
-	if err := plist.NewDecoder(pfile).Decode(p); err != nil {
+	// write dock plist to temp file
+	tmp, err := os.CreateTemp("", "dock.plist")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmp.Name())
+	if err := plist.NewBinaryEncoder(tmp).Encode(p); err != nil {
 		return fmt.Errorf("failed to decode plist: %w", err)
 	}
+	tmp.Close()
 
+	// import plist and restart dock
+	if err := p.importPlist(tmp.Name()); err != nil {
+		return fmt.Errorf("failed to import plist: %w", err)
+	}
 	return p.kickstart()
 }
 
+func (p *Plist) importPlist(path string) error {
+	utils.DoubleIndent(log.Info)("importing dock plist")
+	out, err := utils.RunCommand(context.Background(), "/usr/bin/defaults", "import", "com.apple.dock", path)
+	if err != nil {
+		return fmt.Errorf("failed to defaults import dock plist '%s': %v", path, err)
+	}
+	fmt.Println(out)
+	return nil
+}
+
 func (p *Plist) kickstart() error {
+	utils.DoubleIndent(log.Info)("restarting com.apple.Dock.agent service")
 	out, err := utils.RunCommand(context.Background(), "/bin/launchctl", "kickstart", "-k", fmt.Sprintf("gui/%d/com.apple.Dock.agent", os.Getuid()))
 	if err != nil {
 		return fmt.Errorf("failed to kickstart dock: %v", err)

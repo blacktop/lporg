@@ -13,9 +13,10 @@
             "program": "${workspaceRoot}",
             "args": [
                 "-V",
-                "--yes",
                 "load",
-                "launchpad.yaml"
+                "--yes",
+                "--config",
+                "${userHome}/Library/Application Support/lporg/config.yml"
             ]
         },
         {
@@ -44,29 +45,5 @@
                 "default"
             ]
         },
-        {
-            "name": "Decode",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "showLog": false,
-            "program": "${workspaceRoot}/test"
-        },
-        {
-            "name": "Dock",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "showLog": false,
-            "program": "${workspaceRoot}/dock"
-        },
-        {
-            "name": "Desktop",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "showLog": false,
-            "program": "${workspaceRoot}/desktop"
-        }
     ]
 }
