@@ -33,9 +33,11 @@ import (
 
 // loadCmd represents the load command
 var loadCmd = &cobra.Command{
-	Use:   "load",
-	Short: "Load launchpad settings config from `FILE`",
-	Args:  cobra.MaximumNArgs(1),
+	Use:           "load",
+	Short:         "Load launchpad settings config from `FILE`",
+	Args:          cobra.NoArgs,
+	SilenceUsage:  true,
+	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if Verbose {
