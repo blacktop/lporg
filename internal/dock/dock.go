@@ -74,7 +74,7 @@ func (d TileData) GetPath() string {
 
 // PAItem is a dock plist persistent-apps item object
 type PAItem struct {
-	GUID     int      `plist:"GUID"`
+	GUID     int      `plist:"GUID,omitempty"`
 	TileType string   `plist:"tile-type"`
 	TileData TileData `plist:"tile-data"`
 }
@@ -145,17 +145,27 @@ func LoadDockPlist(path ...string) (*Plist, error) {
 // AddApp adds an app to the dock plist
 func (p *Plist) AddApp(appPath string) error {
 
-	papp := PAItem{
-		GUID:     rand.Intn(9999999999),
-		TileType: "file-tile",
-		TileData: TileData{
-			FileData: FileData{
-				URLString:     appPath,
-				URLStringType: 0,
+	var papp PAItem
+	if len(appPath) == 0 { // add spacer for "" blank apps
+		papp = PAItem{
+			TileType: "small-spacer-tile",
+			TileData: TileData{
+				FileLabel: "",
 			},
-			FileLabel: fileNameWithoutExtTrimSuffix(appPath),
-			FileType:  41,
-		},
+		}
+	} else {
+		papp = PAItem{
+			GUID:     rand.Intn(9999999999),
+			TileType: "file-tile",
+			TileData: TileData{
+				FileData: FileData{
+					URLString:     appPath,
+					URLStringType: 0,
+				},
+				FileLabel: fileNameWithoutExtTrimSuffix(appPath),
+				FileType:  41,
+			},
+		}
 	}
 
 	p.PersistentApps = append(p.PersistentApps, papp)
