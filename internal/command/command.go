@@ -442,9 +442,9 @@ func SaveConfig(c *Config) (err error) {
 	}
 
 	if c.Backup {
-		log.Infof(bold, "successfully backed up current settings!")
+		log.Infof(bold, "successfully backed up current settings to: "+c.File)
 	} else {
-		log.Infof(bold, "successfully wrote: "+c.File)
+		log.Infof(bold, "successfully wrote settings to: "+c.File)
 	}
 
 	return nil

@@ -46,8 +46,24 @@ var defaultCmd = &cobra.Command{
 
 		fmt.Println(command.PorgASCIIArt)
 
-		backup, _ := cmd.Flags().GetBool("backup")
-		yes, _ := cmd.Flags().GetBool("yes")
+		yesbackup, _ := cmd.Flags().GetBool("backup")
+		noBackup, _ := cmd.Flags().GetBool("no-backup")
+		yesDefault, _ := cmd.Flags().GetBool("yes")
+
+		backup := false
+		if yesbackup {
+			backup = true
+		} else if noBackup {
+			backup = false
+		} else {
+			prompt := &survey.Confirm{
+				Message: "Backup your current Launchpad/Dock settings?",
+			}
+			if err := survey.AskOne(prompt, &backup); err == terminal.InterruptErr {
+				log.Warn("Exiting...")
+				return nil
+			}
+		}
 
 		conf := &command.Config{
 			Cmd:      cmd.Use,
@@ -61,22 +77,22 @@ var defaultCmd = &cobra.Command{
 			return err
 		}
 
-		if backup {
+		if conf.Backup {
 			log.Debug("Backing up current launchpad settings")
 			if err := command.SaveConfig(conf); err != nil {
 				return err
 			}
 		}
 
-		if !yes {
+		if !yesDefault {
 			prompt := &survey.Confirm{
 				Message: "Organize launchpad with default config?",
 			}
-			if err := survey.AskOne(prompt, &yes); err == terminal.InterruptErr {
+			if err := survey.AskOne(prompt, &yesDefault); err == terminal.InterruptErr {
 				log.Warn("Exiting...")
 				return nil
 			}
-			if !yes {
+			if !yesDefault {
 				return nil
 			}
 		}
@@ -91,6 +107,8 @@ func init() {
 
 	defaultCmd.Flags().BoolP("yes", "y", false, "Do not prompt user for confirmation")
 	defaultCmd.Flags().BoolP("backup", "b", false, "Backup current launchpad settings")
+	defaultCmd.Flags().BoolP("no-backup", "n", false, "Do NOT backup current launchpad settings")
+	defaultCmd.MarkFlagsMutuallyExclusive("backup", "no-backup")
 	defaultCmd.SetHelpFunc(func(c *cobra.Command, s []string) {
 		rootCmd.PersistentFlags().MarkHidden("config")
 		rootCmd.PersistentFlags().MarkHidden("icloud")
