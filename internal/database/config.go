@@ -1,10 +1,13 @@
 package database
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/apex/log"
 	"github.com/blacktop/lporg/internal/utils"
+	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -99,6 +102,26 @@ func LoadConfig(filename string) (Config, error) {
 	if err != nil {
 		utils.DoubleIndent(log.WithError(err).WithField("path", filename).Fatal)("unmarshalling yaml failed")
 		return conf, err
+	}
+
+	// verify that all folders contain more than 1 item
+	for _, page := range conf.Apps.Pages {
+		for _, item := range page.Items {
+			switch item.(type) {
+			case string:
+				continue
+			default:
+				var folder AppFolder
+				if err := mapstructure.Decode(item, &folder); err != nil {
+					return Config{}, errors.Wrap(err, "mapstructure unable to decode config folder")
+				}
+				if len(folder.Pages) > 0 {
+					if len(folder.Pages[0].Items) < 2 {
+						return Config{}, fmt.Errorf("folder %s must contain more than 1 item to be valid", folder.Name)
+					}
+				}
+			}
+		}
 	}
 
 	return conf, nil
