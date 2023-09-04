@@ -29,9 +29,11 @@ import (
 
 // saveCmd represents the save command
 var saveCmd = &cobra.Command{
-	Use:   "save",
-	Short: "Save current launchpad settings",
-	Args:  cobra.MaximumNArgs(1),
+	Use:           "save",
+	Short:         "Save current launchpad settings",
+	Args:          cobra.NoArgs,
+	SilenceUsage:  true,
+	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if Verbose {

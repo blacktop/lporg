@@ -35,7 +35,7 @@ import (
 var defaultCmd = &cobra.Command{
 	Use:   "default",
 	Short: "Organize by default Apple app categories",
-	Args:  cobra.MaximumNArgs(1),
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if Verbose {

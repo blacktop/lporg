@@ -30,9 +30,12 @@ import (
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
-	Use:     "version",
-	Aliases: []string{"v"},
-	Short:   "Print the version number of lporg",
+	Use:           "version",
+	Aliases:       []string{"v"},
+	Short:         "Print the version number of lporg",
+	Args:          cobra.NoArgs,
+	SilenceUsage:  true,
+	SilenceErrors: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("Version: %s, BuildTime: %s\n", strings.TrimSpace(AppVersion), strings.TrimSpace(AppBuildTime))
 	},

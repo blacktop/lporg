@@ -31,7 +31,7 @@ import (
 var revertCmd = &cobra.Command{
 	Use:           "revert",
 	Short:         "Revert to launchpad settings backup",
-	Args:          cobra.MaximumNArgs(1),
+	Args:          cobra.NoArgs,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
