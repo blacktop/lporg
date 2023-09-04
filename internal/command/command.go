@@ -23,11 +23,11 @@ const bold = "\033[1m%s\033[0m"
 
 // Config is the command config
 type Config struct {
-	Cmd      string
-	File     string
-	Cloud    bool
-	Backup   bool
-	LogLevel int
+	Cmd     string
+	File    string
+	Cloud   bool
+	Backup  bool
+	Verbose bool
 }
 
 // Verify will verify the command config
@@ -205,7 +205,7 @@ func DefaultOrg(c *Config) (err error) {
 	}
 	defer lpad.DB.Close()
 
-	if c.LogLevel > 0 {
+	if c.Verbose {
 		lpad.DB.LogMode(true)
 	}
 
@@ -343,7 +343,7 @@ func SaveConfig(c *Config) (err error) {
 	}
 	defer lpad.DB.Close()
 
-	if c.LogLevel > 0 {
+	if c.Verbose {
 		lpad.DB.LogMode(true)
 	}
 
@@ -491,7 +491,7 @@ func LoadConfig(c *Config) error {
 	}
 	defer lpad.DB.Close()
 
-	if c.LogLevel > 0 {
+	if c.Verbose {
 		lpad.DB.LogMode(true)
 	}
 

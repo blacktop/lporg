@@ -66,11 +66,11 @@ var loadCmd = &cobra.Command{
 		}
 
 		conf := &command.Config{
-			Cmd:      cmd.Use,
-			File:     Config,
-			Cloud:    UseICloud,
-			Backup:   backup,
-			LogLevel: setLogLevel(Verbose),
+			Cmd:     cmd.Use,
+			File:    Config,
+			Cloud:   UseICloud,
+			Backup:  backup,
+			Verbose: Verbose,
 		}
 
 		if err := conf.Verify(); err != nil {

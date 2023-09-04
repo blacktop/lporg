@@ -41,10 +41,10 @@ var saveCmd = &cobra.Command{
 		}
 
 		conf := &command.Config{
-			Cmd:      cmd.Use,
-			File:     Config,
-			Cloud:    UseICloud,
-			LogLevel: setLogLevel(Verbose),
+			Cmd:     cmd.Use,
+			File:    Config,
+			Cloud:   UseICloud,
+			Verbose: Verbose,
 		}
 
 		if err := conf.Verify(); err != nil {
