@@ -221,7 +221,7 @@ func (p *Plist) Save() error {
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %v", err)
 	}
-	defer os.Remove(tmp.Name())
+	utils.DoubleIndent(log.WithField("plist", tmp.Name()).Info)("writing temp dock plist")
 	if err := plist.NewBinaryEncoder(tmp).Encode(p); err != nil {
 		return fmt.Errorf("failed to decode plist: %w", err)
 	}
