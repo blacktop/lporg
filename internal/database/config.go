@@ -44,10 +44,44 @@ type Desktop struct {
 	Image string `yaml:"image,omitempty" json:"image,omitempty"`
 }
 
+type FolderDisplay int
+
+const (
+	stack  FolderDisplay = 0
+	folder FolderDisplay = 1
+)
+
+type FolderView int
+
+const (
+	auto FolderView = 0
+	fan  FolderView = 1
+	grid FolderView = 2
+	list FolderView = 3
+)
+
+type FolderSort int
+
+const (
+	name         FolderSort = 1
+	dateadded    FolderSort = 2
+	datemodified FolderSort = 3
+	datecreated  FolderSort = 4
+	kind         FolderSort = 5
+)
+
+// Folder is a launchpad folder object
+type Folder struct {
+	Path    string        `yaml:"path,omitempty" json:"path,omitempty"`
+	Display FolderDisplay `yaml:"display,omitempty" json:"display,omitempty"`
+	View    FolderView    `yaml:"view,omitempty" json:"view,omitempty"`
+	Sort    FolderSort    `yaml:"sort,omitempty" json:"sort,omitempty"`
+}
+
 // Dock is the launchpad dock config object
 type Dock struct {
 	Apps   []string `yaml:"apps,omitempty" json:"apps,omitempty"`
-	Others []string `yaml:"others,omitempty" json:"others,omitempty"`
+	Others []Folder `yaml:"others,omitempty" json:"others,omitempty"`
 }
 
 // LoadConfig loads the Launchpad config from the config file

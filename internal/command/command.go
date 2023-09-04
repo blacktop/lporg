@@ -419,7 +419,12 @@ func SaveConfig(c *Config) (err error) {
 		conf.Dock.Apps = append(conf.Dock.Apps, item.TileData.GetPath())
 	}
 	for _, item := range dPlist.PersistentOthers {
-		conf.Dock.Others = append(conf.Dock.Others, item.TileData.GetPath())
+		conf.Dock.Others = append(conf.Dock.Others, database.Folder{
+			Path:    item.TileData.GetPath(),
+			Display: database.FolderDisplay(item.TileData.DisplayAs),
+			View:    database.FolderView(item.TileData.ShowAs),
+			Sort:    database.FolderSort(item.TileData.Arrangement),
+		})
 	}
 
 	// write out config YAML file

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/apex/log"
+	"github.com/blacktop/lporg/internal/database"
 	"github.com/blacktop/lporg/internal/utils"
 	"howett.net/plist"
 )
@@ -99,6 +100,7 @@ type POTileData struct {
 	ParentModDate     int64    `plist:"parent-mod-date"`
 	PreferredItemSize int      `plist:"preferreditemsize"`
 	ShowAs            int      `plist:"showas"`
+	Directory         int      `plist:"directory,omitempty"`
 }
 
 func (d POTileData) GetPath() string {
@@ -167,19 +169,20 @@ func (p *Plist) AddApp(appPath string) error {
 }
 
 // AddOther adds an other to the dock plist
-func (p *Plist) AddOther(otherPath string) error {
-	index := len(p.PersistentOthers)
+func (p *Plist) AddOther(other database.Folder) error {
 	pother := POItem{
 		GUID:     rand.Intn(9999999999),
 		TileType: "directory-tile",
 		TileData: POTileData{
-			ShowAs:      index,
-			Arrangement: index + 1,
+			Directory:   1,
+			Arrangement: int(other.Sort),
+			DisplayAs:   int(other.Display),
+			ShowAs:      int(other.View),
 			FileData: FileData{
-				URLString:     strings.Replace(fmt.Sprintf("file://%s/", otherPath), " ", "%20", -1),
+				URLString:     strings.Replace(fmt.Sprintf("file://%s/", other.Path), " ", "%20", -1),
 				URLStringType: 0,
 			},
-			FileLabel:         fileNameWithoutExtTrimSuffix(otherPath),
+			FileLabel:         fileNameWithoutExtTrimSuffix(other.Path),
 			FileModDate:       time.Now().Unix(),
 			FileType:          2,
 			ParentModDate:     time.Now().Unix(),
