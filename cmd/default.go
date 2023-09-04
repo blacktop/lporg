@@ -33,9 +33,11 @@ import (
 
 // defaultCmd represents the default command
 var defaultCmd = &cobra.Command{
-	Use:   "default",
-	Short: "Organize by default Apple app categories",
-	Args:  cobra.NoArgs,
+	Use:           "default",
+	Short:         "Organize by default Apple app categories",
+	Args:          cobra.NoArgs,
+	SilenceUsage:  true,
+	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		if Verbose {
