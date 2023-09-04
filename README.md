@@ -94,7 +94,7 @@ Revert a launchpad app layout to the backed up version stored at `$CONFIG/lporg/
 
 ### Example Configs
 
-- [YAML](https://github.com/blacktop/lporg/blob/master/.hack/test/launchpad-test.yaml)
+- [lporg.yml](https://github.com/blacktop/dotfiles/blob/master/init/lporg.yml)
 
 ## TODO
 
