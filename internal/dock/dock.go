@@ -150,7 +150,7 @@ func (p *Plist) AddApp(appPath string) error {
 		TileType: "file-tile",
 		TileData: TileData{
 			FileData: FileData{
-				URLString:     strings.Replace(fmt.Sprintf("file://%s/", appPath), " ", "%20", -1),
+				URLString:     appPath,
 				URLStringType: 0,
 			},
 			FileLabel: fileNameWithoutExtTrimSuffix(appPath),
@@ -174,7 +174,7 @@ func (p *Plist) AddOther(other database.Folder) error {
 			DisplayAs:   int(other.Display),
 			ShowAs:      int(other.View),
 			FileData: FileData{
-				URLString:     strings.Replace(fmt.Sprintf("file://%s/", other.Path), " ", "%20", -1),
+				URLString:     other.Path,
 				URLStringType: 0,
 			},
 			FileLabel: fileNameWithoutExtTrimSuffix(other.Path),
