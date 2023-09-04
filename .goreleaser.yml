@@ -62,6 +62,9 @@ brews:
     license: MIT    
     install: |
       bin.install "lporg"
+      bash_completion.install "completions/_bash" => "lporg"
+      zsh_completion.install "completions/_zsh" => "_lporg"
+      fish_completion.install "completions/_fish" => "lporg.fish"      
     test: |
       system "#{bin}/lporg --version"
 
@@ -101,6 +104,6 @@ release:
   name_template: "v{{ .Version }}"
   footer: |
     ### Summary
-    **Full Changelog**: https://github.com/blacktop/ipsw/compare/{{ .PreviousTag }}...{{ .Tag }}
+    **Full Changelog**: https://github.com/blacktop/lporg/compare/{{ .PreviousTag }}...{{ .Tag }}
     ## What to do next?
     - Follow us on [Twitter](https://twitter.com/blacktop__)

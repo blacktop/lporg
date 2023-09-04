@@ -241,20 +241,16 @@ func (p *Plist) Save() error {
 
 func (p *Plist) importPlist(path string) error {
 	utils.DoubleIndent(log.Info)("importing dock plist")
-	out, err := utils.RunCommand(context.Background(), "/usr/bin/defaults", "import", "com.apple.dock", path)
-	if err != nil {
+	if _, err := utils.RunCommand(context.Background(), "/usr/bin/defaults", "import", "com.apple.dock", path); err != nil {
 		return fmt.Errorf("failed to defaults import dock plist '%s': %v", path, err)
 	}
-	fmt.Println(out)
 	return nil
 }
 
 func (p *Plist) kickstart() error {
 	utils.DoubleIndent(log.Info)("restarting com.apple.Dock.agent service")
-	out, err := utils.RunCommand(context.Background(), "/bin/launchctl", "kickstart", "-k", fmt.Sprintf("gui/%d/com.apple.Dock.agent", os.Getuid()))
-	if err != nil {
+	if _, err := utils.RunCommand(context.Background(), "/bin/launchctl", "kickstart", "-k", fmt.Sprintf("gui/%d/com.apple.Dock.agent", os.Getuid())); err != nil {
 		return fmt.Errorf("failed to kickstart dock: %v", err)
 	}
-	fmt.Println(out)
 	return nil
 }

@@ -52,7 +52,7 @@ func setLogLevel(verbose bool) int {
 	if verbose {
 		return int(log.DebugLevel)
 	}
-	return int(log.InfoLevel)
+	return int(log.WarnLevel)
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

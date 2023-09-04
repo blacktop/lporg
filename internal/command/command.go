@@ -13,21 +13,22 @@ import (
 	"github.com/blacktop/lporg/internal/desktop"
 	"github.com/blacktop/lporg/internal/dock"
 	"github.com/blacktop/lporg/internal/utils"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/glebarez/sqlite"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 const bold = "\033[1m%s\033[0m"
 
 // Config is the command config
 type Config struct {
-	Cmd     string
-	File    string
-	Cloud   bool
-	Backup  bool
-	Verbose bool
+	Cmd      string
+	File     string
+	Cloud    bool
+	Backup   bool
+	LogLevel int
 }
 
 // Verify will verify the command config
@@ -199,33 +200,22 @@ func DefaultOrg(c *Config) (err error) {
 	}
 
 	// open launchpad database
-	lpad.DB, err = gorm.Open("sqlite3", lpad.File)
+	lpad.DB, err = gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.LogLevel(c.LogLevel)),
+	})
 	if err != nil {
 		return err
 	}
-	defer lpad.DB.Close()
-
-	if c.Verbose {
-		lpad.DB.LogMode(true)
-	}
-
-	// // open launchpad database
-	// lpad.DB, err = gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
-	// 	Logger: logger.Default.LogMode(logger.LogLevel(c.LogLevel)),
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-	// defer func() {
-	// 	db, err := lpad.DB.DB()
-	// 	if err != nil {
-	// 		err = errors.Wrap(err, "unable to get db when trying to close")
-	// 	}
-	// 	err = db.Close()
-	// 	if err != nil {
-	// 		err = errors.Wrap(err, "unable to close db")
-	// 	}
-	// }()
+	defer func() {
+		db, err := lpad.DB.DB()
+		if err != nil {
+			err = errors.Wrap(err, "unable to get db when trying to close")
+		}
+		err = db.Close()
+		if err != nil {
+			err = errors.Wrap(err, "unable to close db")
+		}
+	}()
 
 	// Clear all items related to groups so we can re-create them
 	if err := lpad.ClearGroups(); err != nil {
@@ -337,33 +327,22 @@ func SaveConfig(c *Config) (err error) {
 	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
 
 	// open launchpad database
-	lpad.DB, err = gorm.Open("sqlite3", lpad.File)
+	lpad.DB, err = gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.LogLevel(c.LogLevel)),
+	})
 	if err != nil {
 		return err
 	}
-	defer lpad.DB.Close()
-
-	if c.Verbose {
-		lpad.DB.LogMode(true)
-	}
-
-	// // open launchpad database
-	// lpad.DB, err = gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
-	// 	Logger: logger.Default.LogMode(logger.LogLevel(c.LogLevel)),
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-	// defer func() {
-	// 	db, err := lpad.DB.DB()
-	// 	if err != nil {
-	// 		err = errors.Wrap(err, "unable to get db when trying to close")
-	// 	}
-	// 	err = db.Close()
-	// 	if err != nil {
-	// 		err = errors.Wrap(err, "unable to close db")
-	// 	}
-	// }()
+	defer func() {
+		db, err := lpad.DB.DB()
+		if err != nil {
+			err = errors.Wrap(err, "unable to get db when trying to close")
+		}
+		err = db.Close()
+		if err != nil {
+			err = errors.Wrap(err, "unable to close db")
+		}
+	}()
 
 	// get launchpad and dashboard roots
 	if err := lpad.DB.Where("key in (?)", []string{"launchpad_root", "dashboard_root"}).Find(&dbinfo).Error; err != nil {
@@ -391,9 +370,9 @@ func SaveConfig(c *Config) (err error) {
 	log.Info("collecting launchpad/dashboard pages")
 	parentMapping := make(map[int][]database.Item)
 	for _, item := range items {
-		lpad.DB.Model(&item).Related(&item.App)
+		lpad.DB.Model(&item).Association("App").Find(&item.App)
 		// db.Model(&item).Related(&item.Widget)
-		lpad.DB.Model(&item).Related(&item.Group)
+		lpad.DB.Model(&item).Association("Group").Find(&item.Group)
 
 		parentMapping[item.ParentID] = append(parentMapping[item.ParentID], item)
 	}
@@ -485,33 +464,22 @@ func LoadConfig(c *Config) error {
 	}
 
 	// open launchpad database
-	lpad.DB, err = gorm.Open("sqlite3", lpad.File)
+	lpad.DB, err = gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.LogLevel(c.LogLevel)),
+	})
 	if err != nil {
 		return err
 	}
-	defer lpad.DB.Close()
-
-	if c.Verbose {
-		lpad.DB.LogMode(true)
-	}
-
-	// // open launchpad database
-	// lpad.DB, err = gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
-	// 	Logger: logger.Default.LogMode(logger.LogLevel(c.LogLevel)),
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-	// defer func() {
-	// 	db, err := lpad.DB.DB()
-	// 	if err != nil {
-	// 		err = errors.Wrap(err, "unable to get db when trying to close")
-	// 	}
-	// 	err = db.Close()
-	// 	if err != nil {
-	// 		err = errors.Wrap(err, "unable to close db")
-	// 	}
-	// }()
+	defer func() {
+		db, err := lpad.DB.DB()
+		if err != nil {
+			err = errors.Wrap(err, "unable to get db when trying to close")
+		}
+		err = db.Close()
+		if err != nil {
+			err = errors.Wrap(err, "unable to close db")
+		}
+	}()
 
 	// Clear all items related to groups so we can re-create them
 	if err := lpad.ClearGroups(); err != nil {
@@ -570,6 +538,10 @@ func LoadConfig(c *Config) error {
 		desktop.SetDesktopImage(config.Desktop.Image)
 	}
 
+	if err := restartDock(); err != nil {
+		return fmt.Errorf("failed to restart dock: %w", err)
+	}
+
 	if len(config.Dock.Apps) > 0 || len(config.Dock.Others) > 0 {
 		utils.Indent(log.Info)("setting dock apps")
 		dPlist, err := dock.LoadDockPlist()
@@ -595,5 +567,5 @@ func LoadConfig(c *Config) error {
 		}
 	}
 
-	return restartDock()
+	return nil
 }

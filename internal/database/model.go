@@ -1,6 +1,6 @@
 package database
 
-import "github.com/jinzhu/gorm"
+import "gorm.io/gorm"
 
 // Types
 const (
@@ -53,7 +53,7 @@ type Item struct {
 	UUID     string `gorm:"column:uuid"`
 	Flags    int    `gorm:"column:flags;default:null"`
 	Type     int    `gorm:"column:type"`
-	Group    Group  `gorm:"ForeignKey:ParentID"`
+	Group    Group  `gorm:"ForeignKey:ID"`
 	ParentID int    `gorm:"not null;column:parent_id"`
 	Ordering int    `gorm:"column:ordering"`
 }
