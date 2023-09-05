@@ -316,6 +316,11 @@ func SaveConfig(c *Config) (err error) {
 
 	log.Infof(bold, "SAVING LAUNCHPAD DATABASE")
 
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get user home directory: %v", err)
+	}
+
 	// find launchpad database
 	tmpDir := os.Getenv("TMPDIR")
 	lpad.Folder = filepath.Join(tmpDir, "../0/com.apple.dock.launchpad/db")
@@ -398,8 +403,12 @@ func SaveConfig(c *Config) (err error) {
 		conf.Dock.Apps = append(conf.Dock.Apps, item.TileData.GetPath())
 	}
 	for _, item := range dPlist.PersistentOthers {
+		abspath := item.TileData.GetPath()
+		if relPath, err := filepath.Rel(home, abspath); err == nil {
+			abspath = filepath.Join("~", relPath)
+		}
 		conf.Dock.Others = append(conf.Dock.Others, database.Folder{
-			Path:    item.TileData.GetPath(),
+			Path:    abspath,
 			Display: database.FolderDisplay(item.TileData.DisplayAs),
 			View:    database.FolderView(item.TileData.ShowAs),
 			Sort:    database.FolderSort(item.TileData.Arrangement),

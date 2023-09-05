@@ -182,6 +182,10 @@ func (p *Plist) AddApp(appPath string) error {
 
 // AddOther adds an other to the dock plist
 func (p *Plist) AddOther(other database.Folder) error {
+	abspath, err := filepath.Abs(other.Path)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path for '%s': %v", other.Path, err)
+	}
 	pother := POItem{
 		GUID:     rand.Intn(9999999999),
 		TileType: "directory-tile",
@@ -191,7 +195,7 @@ func (p *Plist) AddOther(other database.Folder) error {
 			DisplayAs:   int(other.Display),
 			ShowAs:      int(other.View),
 			FileData: FileData{
-				URLString:     other.Path,
+				URLString:     abspath,
 				URLStringType: 0,
 			},
 			FileLabel: fileNameWithoutExtTrimSuffix(other.Path),
