@@ -182,9 +182,19 @@ func (p *Plist) AddApp(appPath string) error {
 
 // AddOther adds an other to the dock plist
 func (p *Plist) AddOther(other database.Folder) error {
-	abspath, err := filepath.Abs(other.Path)
+	abspath := other.Path
+	home, err := os.UserHomeDir()
 	if err != nil {
-		return fmt.Errorf("failed to get absolute path for '%s': %v", other.Path, err)
+		return fmt.Errorf("failed to get user home directory: %v", err)
+	}
+	if abspath == "~" {
+		abspath = home
+	} else if strings.HasPrefix(abspath, "~/") {
+		abspath = filepath.Join(home, strings.TrimPrefix(abspath, "~/"))
+	}
+	abspath, err = filepath.Abs(abspath)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path for '%s': %v", abspath, err)
 	}
 	pother := POItem{
 		GUID:     rand.Intn(9999999999),
