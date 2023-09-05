@@ -146,9 +146,16 @@ func LoadDockPlist(path ...string) (*Plist, error) {
 func (p *Plist) AddApp(appPath string) error {
 
 	var papp PAItem
-	if len(appPath) == 0 { // add spacer for "" blank apps
+	if len(appPath) == 0 { // add small-spacer-tile for "" blank apps
 		papp = PAItem{
 			TileType: "small-spacer-tile",
+			TileData: TileData{
+				FileLabel: "",
+			},
+		}
+	} else if appPath == " " { // add spacer-tile for " " apps
+		papp = PAItem{
+			TileType: "spacer-tile",
 			TileData: TileData{
 				FileLabel: "",
 			},
