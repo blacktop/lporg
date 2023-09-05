@@ -406,18 +406,24 @@ func SaveConfig(c *Config) (err error) {
 		})
 	}
 
-	// write out config YAML file
-	d, err := yaml.Marshal(&conf)
-	if err != nil {
-		return errors.Wrap(err, "unable to marshall YAML")
-	}
-
 	if c.Backup {
 		c.File += ".bak"
 	}
 
-	if err = os.WriteFile(c.File, d, 0644); err != nil {
-		return errors.Wrap(err, "unable to write YAML")
+	f, err := os.Create(c.File)
+	if err != nil {
+		return fmt.Errorf("failed to create config file: %w", err)
+	}
+	defer f.Close()
+
+	// write out config YAML file
+	enc := yaml.NewEncoder(f)
+	enc.SetIndent(2)
+	if err := enc.Encode(&conf); err != nil {
+		return errors.Wrap(err, "unable to marshall YAML")
+	}
+	if err := enc.Close(); err != nil {
+		return errors.Wrap(err, "unable to close YAML encoder")
 	}
 
 	if c.Backup {
