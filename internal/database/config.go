@@ -81,10 +81,22 @@ type Folder struct {
 	Sort    FolderSort    `yaml:"sort,omitempty" json:"sort,omitempty"`
 }
 
+// DockSettings is the launchpad dock settings object
+type DockSettings struct {
+	AutoHide              bool `yaml:"autohide" json:"autohide,omitempty"`
+	LargeSize             any  `yaml:"largesize" json:"largesize,omitempty"`
+	Magnification         bool `yaml:"magnification" json:"magnification,omitempty"`
+	MinimizeToApplication bool `yaml:"minimize-to-application" json:"minimize-to-application,omitempty"`
+	MruSpaces             bool `yaml:"mru-spaces" json:"mru-spaces,omitempty"`
+	ShowRecents           bool `yaml:"show-recents" json:"show-recents,omitempty"`
+	TileSize              any  `yaml:"tilesize" json:"tilesize,omitempty"`
+}
+
 // Dock is the launchpad dock config object
 type Dock struct {
-	Apps   []string `yaml:"apps,omitempty" json:"apps,omitempty"`
-	Others []Folder `yaml:"others,omitempty" json:"others,omitempty"`
+	Apps     []string      `yaml:"apps,omitempty" json:"apps,omitempty"`
+	Others   []Folder      `yaml:"others,omitempty" json:"others,omitempty"`
+	Settings *DockSettings `yaml:"settings,omitempty" json:"settings,omitempty"`
 }
 
 // LoadConfig loads the Launchpad config from the config file

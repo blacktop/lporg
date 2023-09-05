@@ -405,6 +405,15 @@ func SaveConfig(c *Config) (err error) {
 			Sort:    database.FolderSort(item.TileData.Arrangement),
 		})
 	}
+	conf.Dock.Settings = &database.DockSettings{
+		AutoHide:              dPlist.AutoHide,
+		LargeSize:             dPlist.LargeSize,
+		Magnification:         dPlist.Magnification,
+		MinimizeToApplication: dPlist.MinimizeToApplication,
+		MruSpaces:             dPlist.MruSpaces,
+		ShowRecents:           dPlist.ShowRecents,
+		TileSize:              dPlist.TileSize,
+	}
 
 	if c.Backup {
 		c.File += ".bak"
@@ -567,6 +576,11 @@ func LoadConfig(c *Config) error {
 		for _, other := range config.Dock.Others {
 			utils.DoubleIndent(log.WithField("other", other).Info)("adding to dock")
 			dPlist.AddOther(other)
+		}
+		if config.Dock.Settings != nil {
+			if err := dPlist.ApplySettings(*config.Dock.Settings); err != nil {
+				return fmt.Errorf("failed to apply dock settings: %w", err)
+			}
 		}
 		if err := dPlist.Save(); err != nil {
 			return fmt.Errorf("failed to save dock plist: %w", err)

@@ -23,7 +23,7 @@ type Plist struct {
 	PersistentApps              []PAItem `plist:"persistent-apps"`
 	PersistentOthers            []POItem `plist:"persistent-others"`
 	AutoHide                    bool     `plist:"autohide"`
-	Largesize                   any      `plist:"largesize"`
+	LargeSize                   any      `plist:"largesize"`
 	Loc                         string   `plist:"loc"`
 	Magnification               bool     `plist:"magnification"`
 	MinimizeToApplication       bool     `plist:"minimize-to-application"`
@@ -201,6 +201,26 @@ func (p *Plist) AddOther(other database.Folder) error {
 
 	p.PersistentOthers = append(p.PersistentOthers, pother)
 
+	return nil
+}
+
+// ApplySettings applies the dock settings to the plist
+func (p *Plist) ApplySettings(setting database.DockSettings) error {
+	p.AutoHide = setting.AutoHide
+	if setting.LargeSize.(float64) >= 16 && setting.LargeSize.(float64) <= 128 {
+		p.LargeSize = setting.LargeSize
+	} else {
+		return fmt.Errorf("large size must be between 16 and 128: %d", setting.LargeSize)
+	}
+	if setting.TileSize.(float64) >= 16 && setting.TileSize.(float64) <= 128 {
+		p.TileSize = setting.TileSize
+	} else {
+		return fmt.Errorf("tile size must be between 16 and 128: %d", setting.TileSize)
+	}
+	p.Magnification = setting.Magnification
+	p.MinimizeToApplication = setting.MinimizeToApplication
+	p.MruSpaces = setting.MruSpaces
+	p.ShowRecents = setting.ShowRecents
 	return nil
 }
 
