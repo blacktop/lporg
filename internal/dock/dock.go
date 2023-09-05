@@ -221,20 +221,30 @@ func (p *Plist) AddOther(other database.Folder) error {
 // ApplySettings applies the dock settings to the plist
 func (p *Plist) ApplySettings(setting database.DockSettings) error {
 	p.AutoHide = setting.AutoHide
-	if setting.LargeSize.(float64) >= 16 && setting.LargeSize.(float64) <= 128 {
-		p.LargeSize = setting.LargeSize
-	} else {
-		return fmt.Errorf("large size must be between 16 and 128: %d", setting.LargeSize)
-	}
-	if setting.TileSize.(float64) >= 16 && setting.TileSize.(float64) <= 128 {
-		p.TileSize = setting.TileSize
-	} else {
-		return fmt.Errorf("tile size must be between 16 and 128: %d", setting.TileSize)
-	}
 	p.Magnification = setting.Magnification
 	p.MinimizeToApplication = setting.MinimizeToApplication
 	p.MruSpaces = setting.MruSpaces
 	p.ShowRecents = setting.ShowRecents
+	switch v := setting.LargeSize.(type) {
+	case float64:
+		if v < 16 && v > 128 {
+			return fmt.Errorf("large size must be between 16 and 128: %d", setting.LargeSize)
+		}
+	case int:
+		if v < 16 && v > 128 {
+			return fmt.Errorf("large size must be between 16 and 128: %d", setting.LargeSize)
+		}
+	}
+	switch v := setting.TileSize.(type) {
+	case float64:
+		if v < 16 && v > 128 {
+			return fmt.Errorf("tile size must be between 16 and 128: %d", setting.TileSize)
+		}
+	case int:
+		if v < 16 && v > 128 {
+			return fmt.Errorf("tile size must be between 16 and 128: %d", setting.TileSize)
+		}
+	}
 	return nil
 }
 
