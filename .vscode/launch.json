@@ -15,6 +15,7 @@
                 "-V",
                 "load",
                 "--yes",
+                "--no-backup",
                 "--config",
                 "${userHome}/Library/Application Support/lporg/config.yml"
             ]
