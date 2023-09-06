@@ -157,7 +157,7 @@ func (p *Plist) AddApp(appPath string) error {
 		papp = PAItem{
 			TileType: "spacer-tile",
 			TileData: TileData{
-				FileLabel: "",
+				FileLabel: " ",
 			},
 		}
 	} else {
