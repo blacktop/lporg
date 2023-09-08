@@ -19,13 +19,12 @@ type LaunchPad struct {
 	File   string
 	Folder string
 
-	rootPage       int
-	missingApps    []string
-	configlessApps []string
-}
+	Config Config
 
-func (lp *LaunchPad) Missing() []string {
-	return lp.missingApps
+	rootPage    int
+	dbApps      []string
+	confApps    []string
+	confFolders []string
 }
 
 // App CREATE TABLE apps (item_id INTEGER PRIMARY KEY, title VARCHAR, bundleid VARCHAR, storeid VARCHAR,category_id INTEGER, moddate REAL, bookmark BLOB)

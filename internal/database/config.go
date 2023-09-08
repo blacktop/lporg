@@ -19,6 +19,31 @@ type Config struct {
 	Desktop Desktop `yaml:"desktop" json:"desktop,omitempty"  mapstructure:"desktop"`
 }
 
+// GetFolderContainingApp returns the folder name that contains the app
+func (c Config) GetFolderContainingApp(app string) (string, error) {
+	for _, page := range c.Apps.Pages {
+		for _, item := range page.Items {
+			switch item.(type) {
+			case string:
+				continue
+			default:
+				var folder AppFolder
+				if err := mapstructure.Decode(item, &folder); err != nil {
+					return "", errors.Wrap(err, "mapstructure unable to decode config folder")
+				}
+				for _, page := range folder.Pages {
+					for _, item := range page.Items {
+						if item == app {
+							return folder.Name, nil
+						}
+					}
+				}
+			}
+		}
+	}
+	return "", fmt.Errorf("unable to find folder containing app %s", app)
+}
+
 // Apps is the launchpad apps config object
 type Apps struct {
 	Pages []Page `yaml:"pages" json:"pages,omitempty"`

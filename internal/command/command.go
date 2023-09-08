@@ -94,32 +94,6 @@ func (c *Config) Verify() error {
 	return nil
 }
 
-// add missing apps to pages at 30 apps per page
-func parseMissing(missing []string, pages []database.Page) []database.Page {
-	if len(missing) > 0 {
-		for _, chunk := range split(missing, 30) {
-			p := database.Page{
-				Number: len(pages) + 1,
-			}
-
-			// because you can't assign a []string to an []interface{} we must copy in one at a time
-			chunkInterface := make([]interface{}, len(chunk))
-			for i, v := range chunk {
-				chunkInterface[i] = v
-			}
-
-			p.Items = chunkInterface
-			pages = append(pages, p)
-			for _, smallerChunk := range split(chunk, 5) {
-				msg := fmt.Sprintf("adding missing apps to page=%d", p.Number)
-				utils.DoubleIndent(log.WithField("apps", smallerChunk).Warn)(msg)
-			}
-		}
-	}
-
-	return pages
-}
-
 func parsePages(root int, parentMapping map[int][]database.Item) (database.Apps, error) {
 	var apps database.Apps
 
@@ -288,9 +262,8 @@ func DefaultOrg(c *Config) (err error) {
 	}
 
 	utils.Indent(log.Info)("creating App folders and adding apps to them")
-	groupID, err = lpad.ApplyConfig(config.Apps, database.ApplicationType, groupID, 1)
-	if err != nil {
-		return fmt.Errorf("failed to ApplyConfig: %v", err)
+	if err := lpad.ApplyConfig(config.Apps, groupID, 1); err != nil {
+		return fmt.Errorf("failed to DefaultOrg->ApplyConfig: %w", err)
 	}
 
 	// Re-enable the update triggers
@@ -452,11 +425,11 @@ func SaveConfig(c *Config) (err error) {
 }
 
 // LoadConfig will load your launchpad settings from a config file
-func LoadConfig(c *Config) error {
+func LoadConfig(c *Config) (err error) {
 	var lpad database.LaunchPad
 
 	// Read in Config file
-	config, err := database.LoadConfig(c.File)
+	lpad.Config, err = database.LoadConfig(c.File)
 	if err != nil {
 		return fmt.Errorf("failed to load config file: %v", err)
 	}
@@ -538,14 +511,13 @@ func LoadConfig(c *Config) error {
 
 	/////////////////////////////////////////////////////////////////////
 	// Place Apps ///////////////////////////////////////////////////////
-	if err := lpad.GetMissing(&config.Apps, database.ApplicationType); err != nil {
+	if err := lpad.GetMissing(&lpad.Config.Apps, database.ApplicationType); err != nil {
 		return fmt.Errorf("failed to GetMissing=>Apps: %v", err)
 	}
 
 	utils.Indent(log.Info)("creating App folders and adding apps to them")
-	groupID, err = lpad.ApplyConfig(config.Apps, database.ApplicationType, groupID, 1)
-	if err != nil {
-		return fmt.Errorf("failed to ApplyConfig=>Apps: %v", err)
+	if err := lpad.ApplyConfig(lpad.Config.Apps, groupID, 1); err != nil {
+		return fmt.Errorf("failed to LoadConfig->ApplyConfig: %w", err)
 	}
 
 	// Re-enable the update triggers
@@ -553,16 +525,20 @@ func LoadConfig(c *Config) error {
 		return fmt.Errorf("failed to EnableTriggers: %v", err)
 	}
 
-	if len(config.Desktop.Image) > 0 {
-		utils.Indent(log.WithField("image", config.Desktop.Image).Info)("setting desktop background image")
-		desktop.SetDesktopImage(config.Desktop.Image)
-	}
-
 	if err := restartDock(); err != nil {
 		return fmt.Errorf("failed to restart dock: %w", err)
 	}
 
-	if len(config.Dock.Apps) > 0 || len(config.Dock.Others) > 0 {
+	if err := lpad.FixOther(); err != nil {
+		return fmt.Errorf("failed to fix Other folder: %w", err)
+	}
+
+	if len(lpad.Config.Desktop.Image) > 0 {
+		utils.Indent(log.WithField("image", lpad.Config.Desktop.Image).Info)("setting desktop background image")
+		desktop.SetDesktopImage(lpad.Config.Desktop.Image)
+	}
+
+	if len(lpad.Config.Dock.Apps) > 0 || len(lpad.Config.Dock.Others) > 0 {
 		utils.Indent(log.Info)("setting dock apps")
 		dPlist, err := dock.LoadDockPlist()
 		if err != nil {
@@ -571,19 +547,19 @@ func LoadConfig(c *Config) error {
 		if len(dPlist.PersistentApps) > 0 {
 			dPlist.PersistentApps = nil // remove all apps from dock
 		}
-		for _, app := range config.Dock.Apps {
+		for _, app := range lpad.Config.Dock.Apps {
 			utils.DoubleIndent(log.WithField("app", app).Info)("adding to dock")
 			dPlist.AddApp(app)
 		}
 		if len(dPlist.PersistentOthers) > 0 {
 			dPlist.PersistentOthers = nil // remove all folders from dock
 		}
-		for _, other := range config.Dock.Others {
+		for _, other := range lpad.Config.Dock.Others {
 			utils.DoubleIndent(log.WithField("other", other).Info)("adding to dock")
 			dPlist.AddOther(other)
 		}
-		if config.Dock.Settings != nil {
-			if err := dPlist.ApplySettings(*config.Dock.Settings); err != nil {
+		if lpad.Config.Dock.Settings != nil {
+			if err := dPlist.ApplySettings(*lpad.Config.Dock.Settings); err != nil {
 				return fmt.Errorf("failed to apply dock settings: %w", err)
 			}
 		}
