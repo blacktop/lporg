@@ -114,6 +114,8 @@ type DockSettings struct {
 	MinimizeToApplication bool `yaml:"minimize-to-application" json:"minimize-to-application,omitempty"`
 	MruSpaces             bool `yaml:"mru-spaces" json:"mru-spaces,omitempty"`
 	ShowRecents           bool `yaml:"show-recents" json:"show-recents,omitempty"`
+	SpringboardColumns    int  `yaml:"springboard-columns" json:"springboard-columns,omitempty"`
+	SpringboardRows       int  `yaml:"springboard-rows" json:"springboard-rows,omitempty"`
 	TileSize              any  `yaml:"tilesize" json:"tilesize,omitempty"`
 }
 

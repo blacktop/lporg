@@ -392,6 +392,8 @@ func SaveConfig(c *Config) (err error) {
 		MinimizeToApplication: dPlist.MinimizeToApplication,
 		MruSpaces:             dPlist.MruSpaces,
 		ShowRecents:           dPlist.ShowRecents,
+		SpringboardColumns:    dPlist.SpringboardColumns,
+		SpringboardRows:       dPlist.SpringboardRows,
 		TileSize:              dPlist.TileSize,
 	}
 
@@ -515,29 +517,6 @@ func LoadConfig(c *Config) (err error) {
 		return fmt.Errorf("failed to GetMissing=>Apps: %v", err)
 	}
 
-	utils.Indent(log.Info)("creating App folders and adding apps to them")
-	if err := lpad.ApplyConfig(lpad.Config.Apps, groupID, 1); err != nil {
-		return fmt.Errorf("failed to LoadConfig->ApplyConfig: %w", err)
-	}
-
-	// Re-enable the update triggers
-	if err := lpad.EnableTriggers(); err != nil {
-		return fmt.Errorf("failed to EnableTriggers: %v", err)
-	}
-
-	if err := restartDock(); err != nil {
-		return fmt.Errorf("failed to restart dock: %w", err)
-	}
-
-	if err := lpad.FixOther(); err != nil {
-		return fmt.Errorf("failed to fix Other folder: %w", err)
-	}
-
-	if len(lpad.Config.Desktop.Image) > 0 {
-		utils.Indent(log.WithField("image", lpad.Config.Desktop.Image).Info)("setting desktop background image")
-		desktop.SetDesktopImage(lpad.Config.Desktop.Image)
-	}
-
 	if len(lpad.Config.Dock.Apps) > 0 || len(lpad.Config.Dock.Others) > 0 {
 		utils.Indent(log.Info)("setting dock apps")
 		dPlist, err := dock.LoadDockPlist()
@@ -566,6 +545,29 @@ func LoadConfig(c *Config) (err error) {
 		if err := dPlist.Save(); err != nil {
 			return fmt.Errorf("failed to save dock plist: %w", err)
 		}
+	}
+
+	utils.Indent(log.Info)("creating App folders and adding apps to them")
+	if err := lpad.ApplyConfig(lpad.Config.Apps, groupID, 1); err != nil {
+		return fmt.Errorf("failed to LoadConfig->ApplyConfig: %w", err)
+	}
+
+	// Re-enable the update triggers
+	if err := lpad.EnableTriggers(); err != nil {
+		return fmt.Errorf("failed to EnableTriggers: %v", err)
+	}
+
+	if err := restartDock(); err != nil {
+		return fmt.Errorf("failed to restart dock: %w", err)
+	}
+
+	if err := lpad.FixOther(); err != nil {
+		return fmt.Errorf("failed to fix Other folder: %w", err)
+	}
+
+	if len(lpad.Config.Desktop.Image) > 0 {
+		utils.Indent(log.WithField("image", lpad.Config.Desktop.Image).Info)("setting desktop background image")
+		desktop.SetDesktopImage(lpad.Config.Desktop.Image)
 	}
 
 	return nil
