@@ -266,9 +266,6 @@ func DefaultOrg(c *Config) (err error) {
 		return fmt.Errorf("failed to DefaultOrg->ApplyConfig: %w", err)
 	}
 
-	if err := restartDock(); err != nil {
-		return fmt.Errorf("failed to restart dock: %w", err)
-	}
 	// Re-enable the update triggers
 	if err := lpad.EnableTriggers(); err != nil {
 		return fmt.Errorf("failed to EnableTriggers: %v", err)
@@ -428,11 +425,11 @@ func SaveConfig(c *Config) (err error) {
 }
 
 // LoadConfig will load your launchpad settings from a config file
-func LoadConfig(c *Config) error {
+func LoadConfig(c *Config) (err error) {
 	var lpad database.LaunchPad
 
 	// Read in Config file
-	config, err := database.LoadConfig(c.File)
+	lpad.Config, err = database.LoadConfig(c.File)
 	if err != nil {
 		return fmt.Errorf("failed to load config file: %v", err)
 	}
@@ -479,18 +476,20 @@ func LoadConfig(c *Config) error {
 		}
 	}()
 
-	lpad.DisableTriggers()
 	// Clear all items related to groups so we can re-create them
 	if err := lpad.ClearGroups(); err != nil {
 		return fmt.Errorf("failed to ClearGroups: %v", err)
+	}
+
+	// Disable the update triggers
+	if err := lpad.DisableTriggers(); err != nil {
+		return fmt.Errorf("failed to DisableTriggers: %v", err)
 	}
 
 	// Add root and holding pages to items and groups
 	if err := lpad.AddRootsAndHoldingPages(); err != nil {
 		return fmt.Errorf("failed to AddRootsAndHoldingPagesfailed: %v", err)
 	}
-
-	lpad.EnableTriggers()
 
 	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
 	// groupID := int(math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID())))
@@ -512,55 +511,62 @@ func LoadConfig(c *Config) error {
 
 	/////////////////////////////////////////////////////////////////////
 	// Place Apps ///////////////////////////////////////////////////////
-	if err := lpad.GetMissing(&config.Apps, database.ApplicationType); err != nil {
+	if err := lpad.GetMissing(&lpad.Config.Apps, database.ApplicationType); err != nil {
 		return fmt.Errorf("failed to GetMissing=>Apps: %v", err)
 	}
 
 	utils.Indent(log.Info)("creating App folders and adding apps to them")
-	if err := lpad.ApplyConfig(config.Apps, groupID, 1); err != nil {
+	if err := lpad.ApplyConfig(lpad.Config.Apps, groupID, 1); err != nil {
 		return fmt.Errorf("failed to LoadConfig->ApplyConfig: %w", err)
+	}
+
+	// Re-enable the update triggers
+	if err := lpad.EnableTriggers(); err != nil {
+		return fmt.Errorf("failed to EnableTriggers: %v", err)
 	}
 
 	if err := restartDock(); err != nil {
 		return fmt.Errorf("failed to restart dock: %w", err)
 	}
 
-	// lpad.FixOther(config.Apps)
-
-	if len(config.Desktop.Image) > 0 {
-		utils.Indent(log.WithField("image", config.Desktop.Image).Info)("setting desktop background image")
-		desktop.SetDesktopImage(config.Desktop.Image)
+	if err := lpad.FixOther(); err != nil {
+		return fmt.Errorf("failed to fix Other folder: %w", err)
 	}
 
-	// if len(config.Dock.Apps) > 0 || len(config.Dock.Others) > 0 {
-	// 	utils.Indent(log.Info)("setting dock apps")
-	// 	dPlist, err := dock.LoadDockPlist()
-	// 	if err != nil {
-	// 		return errors.Wrap(err, "unable to load dock plist")
-	// 	}
-	// 	if len(dPlist.PersistentApps) > 0 {
-	// 		dPlist.PersistentApps = nil // remove all apps from dock
-	// 	}
-	// 	for _, app := range config.Dock.Apps {
-	// 		utils.DoubleIndent(log.WithField("app", app).Info)("adding to dock")
-	// 		dPlist.AddApp(app)
-	// 	}
-	// 	if len(dPlist.PersistentOthers) > 0 {
-	// 		dPlist.PersistentOthers = nil // remove all folders from dock
-	// 	}
-	// 	for _, other := range config.Dock.Others {
-	// 		utils.DoubleIndent(log.WithField("other", other).Info)("adding to dock")
-	// 		dPlist.AddOther(other)
-	// 	}
-	// 	if config.Dock.Settings != nil {
-	// 		if err := dPlist.ApplySettings(*config.Dock.Settings); err != nil {
-	// 			return fmt.Errorf("failed to apply dock settings: %w", err)
-	// 		}
-	// 	}
-	// 	if err := dPlist.Save(); err != nil {
-	// 		return fmt.Errorf("failed to save dock plist: %w", err)
-	// 	}
-	// }
+	if len(lpad.Config.Desktop.Image) > 0 {
+		utils.Indent(log.WithField("image", lpad.Config.Desktop.Image).Info)("setting desktop background image")
+		desktop.SetDesktopImage(lpad.Config.Desktop.Image)
+	}
+
+	if len(lpad.Config.Dock.Apps) > 0 || len(lpad.Config.Dock.Others) > 0 {
+		utils.Indent(log.Info)("setting dock apps")
+		dPlist, err := dock.LoadDockPlist()
+		if err != nil {
+			return errors.Wrap(err, "unable to load dock plist")
+		}
+		if len(dPlist.PersistentApps) > 0 {
+			dPlist.PersistentApps = nil // remove all apps from dock
+		}
+		for _, app := range lpad.Config.Dock.Apps {
+			utils.DoubleIndent(log.WithField("app", app).Info)("adding to dock")
+			dPlist.AddApp(app)
+		}
+		if len(dPlist.PersistentOthers) > 0 {
+			dPlist.PersistentOthers = nil // remove all folders from dock
+		}
+		for _, other := range lpad.Config.Dock.Others {
+			utils.DoubleIndent(log.WithField("other", other).Info)("adding to dock")
+			dPlist.AddOther(other)
+		}
+		if lpad.Config.Dock.Settings != nil {
+			if err := dPlist.ApplySettings(*lpad.Config.Dock.Settings); err != nil {
+				return fmt.Errorf("failed to apply dock settings: %w", err)
+			}
+		}
+		if err := dPlist.Save(); err != nil {
+			return fmt.Errorf("failed to save dock plist: %w", err)
+		}
+	}
 
 	return nil
 }

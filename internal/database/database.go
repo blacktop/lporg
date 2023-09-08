@@ -17,11 +17,6 @@ import (
 // GetMissing returns a list of the rest of the apps not in the config
 func (lp *LaunchPad) GetMissing(apps *Apps, appType int) error {
 
-	var (
-		dbApps     []string
-		configApps []string
-	)
-
 	// get all apps from database
 	switch appType {
 	case ApplicationType:
@@ -35,38 +30,39 @@ func (lp *LaunchPad) GetMissing(apps *Apps, appType int) error {
 			return fmt.Errorf("query all apps failed: %w", err)
 		}
 		for _, app := range apps {
-			dbApps = append(dbApps, app.Title)
+			lp.dbApps = append(lp.dbApps, app.Title)
 		}
 	default:
 		return fmt.Errorf("GetMissing: unsupported app type: %d", appType)
 	}
 
-	sort.Strings(dbApps)
+	sort.Strings(lp.dbApps)
 
 	// get all apps from config file
 	for _, page := range apps.Pages {
 		for _, item := range page.Items {
 			switch item.(type) {
 			case string:
-				configApps = append(configApps, item.(string))
+				lp.confApps = append(lp.confApps, item.(string))
 			default:
 				var folder AppFolder
 				if err := mapstructure.Decode(item, &folder); err != nil {
 					return fmt.Errorf("mapstructure unable to decode config folder: %w", err)
 				}
+				lp.confFolders = append(lp.confFolders, folder.Name)
 				for _, fpage := range folder.Pages {
 					for _, fitem := range fpage.Items {
-						configApps = append(configApps, fitem)
+						lp.confApps = append(lp.confApps, fitem)
 					}
 				}
 			}
 		}
 	}
 
-	sort.Strings(configApps)
+	sort.Strings(lp.confApps)
 
-	for _, app := range dbApps {
-		if !slices.Contains(configApps, app) {
+	for _, app := range lp.dbApps {
+		if !slices.Contains(lp.confApps, app) {
 			utils.DoubleIndent(log.WithField("app", app).Warn)("found installed apps that are not in supplied config")
 			if len(apps.Pages[len(apps.Pages)-1].Items) < 35 {
 				apps.Pages[len(apps.Pages)-1].Items = append(apps.Pages[len(apps.Pages)-1].Items, app)
@@ -85,7 +81,7 @@ func (lp *LaunchPad) GetMissing(apps *Apps, appType int) error {
 		for iidx, item := range page.Items {
 			switch item.(type) {
 			case string:
-				if !slices.Contains(dbApps, item.(string)) {
+				if !slices.Contains(lp.dbApps, item.(string)) {
 					utils.DoubleIndent(log.WithField("app", item.(string)).Warn)("found app in config that are is not on system")
 					apps.Pages[idx].Items = append(apps.Pages[idx].Items[:iidx], apps.Pages[idx].Items[iidx+1:]...)
 				}
@@ -96,7 +92,7 @@ func (lp *LaunchPad) GetMissing(apps *Apps, appType int) error {
 				}
 				for fpIdx, fpage := range folder.Pages {
 					for fpiIdx, fitem := range fpage.Items {
-						if !slices.Contains(dbApps, fitem) {
+						if !slices.Contains(lp.dbApps, fitem) {
 							utils.DoubleIndent(log.WithField("app", fitem).Warn)("found app in config that are is not on system")
 							apps.Pages[idx].Items[iidx].(map[string]any)["pages"].([]any)[fpIdx].(map[string]any)["items"] = append(
 								apps.Pages[idx].Items[iidx].(map[string]any)["pages"].([]any)[fpIdx].(map[string]any)["items"].([]any)[:fpiIdx],
@@ -114,10 +110,12 @@ func (lp *LaunchPad) GetMissing(apps *Apps, appType int) error {
 // ClearGroups clears out items related to groups
 func (lp *LaunchPad) ClearGroups() error {
 	utils.Indent(log.Info)("clear out groups")
-	if err := lp.DB.Where("type in (?)", []int{RootType, FolderRootType, PageType}).Delete(&Item{}).Error; err != nil {
+	var items []Item
+	if err := lp.DB.Where("type in (?)", []int{RootType, FolderRootType, PageType}).Delete(&items).Error; err != nil {
 		return fmt.Errorf("delete items associted with groups failed: %w", err)
 	}
-	return lp.DB.Exec("DELETE FROM groups;").Error
+	// return lp.DB.Exec("DELETE FROM groups;").Error
+	return nil
 }
 
 // FlattenApps sets all the apps to the root page
@@ -203,9 +201,9 @@ func (lp *LaunchPad) createNewFolder(folderName string, rowID, folderParentID, f
 		Ordering: folderNumber,
 	}
 
-	// if folderName == "Other" {
-	// 	item.Flags = 1
-	// }
+	if folderName == "Utilities" {
+		item.Flags = 1
+	}
 
 	if err := lp.DB.Create(&item).Error; err != nil {
 		return fmt.Errorf("failed to create folder '%s' item with ID=%d: %w", folderName, rowID, err)
@@ -289,11 +287,15 @@ func (lp *LaunchPad) updateItem(item string, itemType, parentID, ordering int) e
 func (lp *LaunchPad) ApplyConfig(config Apps, groupID, rootParentID int) error {
 
 	for _, page := range config.Pages {
-		// create a new page
 		groupID++
+		// create a new page
 		err := lp.createNewPage(groupID, rootParentID, page.Number)
 		if err != nil {
 			return errors.Wrap(err, "createNewPage")
+		}
+
+		if page.Number == 1 {
+			lp.rootPage = groupID
 		}
 
 		pageParentID := groupID
@@ -414,8 +416,49 @@ func (lp *LaunchPad) ApplyConfig(config Apps, groupID, rootParentID int) error {
 // 	return nil
 // }
 
+func (lp *LaunchPad) addToFolder(appName, folderName string) error {
+	var a App
+	if err := lp.DB.Where("title = ?", appName).First(&a).Error; err != nil {
+		return fmt.Errorf("app query failed for '%s': %w", appName, err)
+	}
+	var app Item
+	if err := lp.DB.Where("rowid = ?", a.ID).First(&app).Error; err != nil {
+		return fmt.Errorf("item query failed for app ID %d: %w", a.ID, err)
+	}
+
+	var g Group
+	if err := lp.DB.Where("title = ?", folderName).First(&g).Error; err != nil {
+		return fmt.Errorf("group query failed for '%s': %w", folderName, err)
+	}
+	var folder Item
+	if err := lp.DB.Where("rowid = ?", g.ID).First(&folder).Error; err != nil {
+		return fmt.Errorf("item query failed for folder ID %d: %w", a.ID, err)
+	}
+	var pages []Item
+	if err := lp.DB.Where("parent_id = ?", folder.ID).Find(&pages).Error; err != nil {
+		return fmt.Errorf("failed to find pages for folder '%s': %w", folderName, err)
+	}
+	if len(pages) == 0 {
+		return fmt.Errorf("folder '%s' has no pages", folderName)
+	}
+	var folderApps []Item
+	if err := lp.DB.Where("parent_id = ?", pages[0].ID).Find(&folderApps).Error; err != nil {
+		return fmt.Errorf("failed to find apps for page '%d': %w", pages[0].ID, err)
+	}
+
+	if err := lp.updateItem(appName, ApplicationType, pages[0].ID, len(folderApps)); err != nil {
+		return fmt.Errorf("failed to add app '%s' to folder '%s': %w", appName, folderName, err)
+	}
+
+	return nil
+}
+
 // FixOther moves all apps in the 'Other' group to the root page
-func (lp *LaunchPad) FixOther(conf Apps) error {
+func (lp *LaunchPad) FixOther() error {
+	if slices.Contains(lp.confFolders, "Other") { // config contain Other folder (no need to fix)
+		return nil
+	}
+
 	var other Group
 	if err := lp.DB.Where("title = ?", "Other").Find(&other).Error; err != nil {
 		return fmt.Errorf("failed to find group 'Other': %w", err)
@@ -442,10 +485,34 @@ func (lp *LaunchPad) FixOther(conf Apps) error {
 	}
 
 	// move apps to root page
-	for idx, app := range apps {
-		if err := lp.updateItem(app.Title, ApplicationType, lp.rootPage, idx); err != nil {
-			return fmt.Errorf("failed to update app '%s': %w", app.Title, err)
+	for _, app := range apps {
+		utils.DoubleIndent(log.WithField("app", app.Title).Warn)("moving app from Other folder")
+		if cfolder, err := lp.Config.GetFolderContainingApp(app.Title); err == nil {
+			if err := lp.addToFolder(app.Title, cfolder); err != nil { // add to folder it SHOULD have been in
+				return err
+			}
+		} else {
+			if err := lp.updateItem(app.Title, ApplicationType, lp.rootPage, -1); err != nil { // add to end of root page
+				return fmt.Errorf("failed to move app '%s' from Other to root: %w", app.Title, err)
+			}
 		}
+
+	}
+
+	// remove all traces of Other
+	for _, page := range pages {
+		if err := lp.DB.Delete(&page).Error; err != nil {
+			return fmt.Errorf("failed to delete page '%s': %w", page.UUID, err)
+		}
+		if err := lp.DB.Delete(&Group{ID: page.ID}).Error; err != nil {
+			return fmt.Errorf("failed to delete group for page '%s': %w", page.UUID, err)
+		}
+	}
+	if err := lp.DB.Delete(&other).Error; err != nil {
+		return fmt.Errorf("failed to delete group 'Other': %w", err)
+	}
+	if err := lp.DB.Delete(&Item{ID: other.ID}).Error; err != nil {
+		return fmt.Errorf("failed to delete item for 'Other': %w", err)
 	}
 
 	return nil
