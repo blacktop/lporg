@@ -241,7 +241,7 @@ func DefaultOrg(c *Config) (err error) {
 	// Create default config file
 	var apps []database.App
 	var categories []database.Category
-	var dbconf database.Config
+	var config database.Config
 
 	page := database.Page{Number: 1}
 
@@ -265,7 +265,7 @@ func DefaultOrg(c *Config) (err error) {
 		page.Items = append(page.Items, folder)
 	}
 
-	dbconf.Apps.Pages = append(dbconf.Apps.Pages, page)
+	config.Apps.Pages = append(config.Apps.Pages, page)
 
 	////////////////////////////////////////////////////////////////////
 	// Place Widgets ///////////////////////////////////////////////////
@@ -283,14 +283,12 @@ func DefaultOrg(c *Config) (err error) {
 
 	/////////////////////////////////////////////////////////////////////
 	// Place Apps ///////////////////////////////////////////////////////
-	utils.Indent(log.Info)("creating App folders and adding apps to them")
-	missing, err := lpad.GetMissing(dbconf.Apps, database.ApplicationType)
-	if err != nil {
+	if err := lpad.GetMissing(&config.Apps, database.ApplicationType); err != nil {
 		return fmt.Errorf("failed to GetMissing=>Apps: %v", err)
 	}
 
-	dbconf.Apps.Pages = parseMissing(missing, dbconf.Apps.Pages)
-	groupID, err = lpad.ApplyConfig(dbconf.Apps, database.ApplicationType, groupID, 1)
+	utils.Indent(log.Info)("creating App folders and adding apps to them")
+	groupID, err = lpad.ApplyConfig(config.Apps, database.ApplicationType, groupID, 1)
 	if err != nil {
 		return fmt.Errorf("failed to ApplyConfig: %v", err)
 	}
@@ -540,13 +538,11 @@ func LoadConfig(c *Config) error {
 
 	/////////////////////////////////////////////////////////////////////
 	// Place Apps ///////////////////////////////////////////////////////
-	utils.Indent(log.Info)("creating App folders and adding apps to them")
-	missing, err := lpad.GetMissing(config.Apps, database.ApplicationType)
-	if err != nil {
+	if err := lpad.GetMissing(&config.Apps, database.ApplicationType); err != nil {
 		return fmt.Errorf("failed to GetMissing=>Apps: %v", err)
 	}
 
-	config.Apps.Pages = parseMissing(missing, config.Apps.Pages)
+	utils.Indent(log.Info)("creating App folders and adding apps to them")
 	groupID, err = lpad.ApplyConfig(config.Apps, database.ApplicationType, groupID, 1)
 	if err != nil {
 		return fmt.Errorf("failed to ApplyConfig=>Apps: %v", err)

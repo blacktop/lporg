@@ -2,45 +2,27 @@
 package database
 
 import (
-	"crypto/rand"
 	"fmt"
-	"io"
 	"sort"
 
 	"github.com/apex/log"
 	"github.com/blacktop/lporg/internal/utils"
+	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 	"gorm.io/gorm"
 )
 
 // GetMissing returns a list of the rest of the apps not in the config
-func (lp *LaunchPad) GetMissing(apps Apps, appType int) ([]string, error) {
+func (lp *LaunchPad) GetMissing(apps *Apps, appType int) error {
 
-	missing := []string{}
-	appsFromConfig := []string{}
+	var (
+		dbApps     []string
+		configApps []string
+	)
 
-	// get all apps from config file
-	for _, page := range apps.Pages {
-		for _, item := range page.Items {
-			switch item.(type) {
-			case string:
-				appsFromConfig = append(appsFromConfig, item.(string))
-			default:
-				var folder AppFolder
-				if err := mapstructure.Decode(item, &folder); err != nil {
-					return nil, errors.Wrap(err, "mapstructure unable to decode config folder")
-				}
-
-				for _, fpage := range folder.Pages {
-					for _, fitem := range fpage.Items {
-						appsFromConfig = append(appsFromConfig, fitem)
-					}
-				}
-			}
-		}
-	}
-
+	// get all apps from database
 	switch appType {
 	case ApplicationType:
 		var apps []App
@@ -50,33 +32,83 @@ func (lp *LaunchPad) GetMissing(apps Apps, appType int) ([]string, error) {
 			Not("items.parent_id = ?", 6).
 			Scan(&apps).Error
 		if err != nil {
-			return nil, err
+			return fmt.Errorf("query all apps failed: %w", err)
 		}
 		for _, app := range apps {
-			if !utils.StringInSlice(app.Title, appsFromConfig) {
-				missing = utils.AppendIfMissing(missing, app.Title)
-			}
+			dbApps = append(dbApps, app.Title)
 		}
-	case WidgetType:
-		var widgets []Widget
-		err := lp.DB.Table("widgets").Select("widgets.item_id, widgets.title").Joins("left join items on items.rowid = widgets.item_id").Scan(&widgets).Error
-		if err != nil {
-			return nil, err
-		}
-		for _, widget := range widgets {
-			if !utils.StringInSlice(widget.Title, appsFromConfig) {
-				missing = utils.AppendIfMissing(missing, widget.Title)
+	default:
+		return fmt.Errorf("GetMissing: unsupported app type: %d", appType)
+	}
+
+	sort.Strings(dbApps)
+
+	// get all apps from config file
+	for _, page := range apps.Pages {
+		for _, item := range page.Items {
+			switch item.(type) {
+			case string:
+				configApps = append(configApps, item.(string))
+			default:
+				var folder AppFolder
+				if err := mapstructure.Decode(item, &folder); err != nil {
+					return fmt.Errorf("mapstructure unable to decode config folder: %w", err)
+				}
+				for _, fpage := range folder.Pages {
+					for _, fitem := range fpage.Items {
+						configApps = append(configApps, fitem)
+					}
+				}
 			}
 		}
 	}
 
-	sort.Strings(missing)
+	sort.Strings(configApps)
 
-	if len(missing) > 0 {
-		utils.DoubleIndent(log.WithField("count", len(missing)).Info)("found apps/widgets that are not in supplied config")
+	for _, app := range dbApps {
+		if !slices.Contains(configApps, app) {
+			utils.DoubleIndent(log.WithField("app", app).Warn)("found installed apps that are not in supplied config")
+			if len(apps.Pages[len(apps.Pages)-1].Items) < 35 {
+				apps.Pages[len(apps.Pages)-1].Items = append(apps.Pages[len(apps.Pages)-1].Items, app)
+			} else {
+				newPage := Page{
+					Number: len(apps.Pages) + 1,
+					Items:  []any{app},
+				}
+				apps.Pages = append(apps.Pages, newPage)
+			}
+		}
 	}
 
-	return missing, nil
+	// check all apps from config file exist on system
+	for idx, page := range apps.Pages {
+		for iidx, item := range page.Items {
+			switch item.(type) {
+			case string:
+				if !slices.Contains(dbApps, item.(string)) {
+					utils.DoubleIndent(log.WithField("app", item.(string)).Warn)("found app in config that are is not on system")
+					apps.Pages[idx].Items = append(apps.Pages[idx].Items[:iidx], apps.Pages[idx].Items[iidx+1:]...)
+				}
+			default:
+				var folder AppFolder
+				if err := mapstructure.Decode(item, &folder); err != nil {
+					return fmt.Errorf("mapstructure unable to decode config folder: %w", err)
+				}
+				for fpIdx, fpage := range folder.Pages {
+					for fpiIdx, fitem := range fpage.Items {
+						if !slices.Contains(dbApps, fitem) {
+							utils.DoubleIndent(log.WithField("app", fitem).Warn)("found app in config that are is not on system")
+							apps.Pages[idx].Items[iidx].(map[string]any)["pages"].([]any)[fpIdx].(map[string]any)["items"] = append(
+								apps.Pages[idx].Items[iidx].(map[string]any)["pages"].([]any)[fpIdx].(map[string]any)["items"].([]any)[:fpiIdx],
+								apps.Pages[idx].Items[iidx].(map[string]any)["pages"].([]any)[fpIdx].(map[string]any)["items"].([]any)[fpiIdx+1:]...)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 // ClearGroups clears out items related to groups
@@ -122,7 +154,7 @@ func (lp *LaunchPad) createNewPage(pageNumber, groupID, pageParentID int) error 
 
 	item := Item{
 		ID:       groupID,
-		UUID:     newUUID(),
+		UUID:     uuid.New().String(),
 		Flags:    2,
 		Type:     PageType,
 		ParentID: pageParentID,
@@ -153,7 +185,7 @@ func (lp *LaunchPad) createNewFolder(folderName string, folderNumber, groupID, f
 
 	item := Item{
 		ID:       groupID,
-		UUID:     newUUID(),
+		UUID:     uuid.New().String(),
 		Flags:    0,
 		Type:     FolderRootType,
 		ParentID: folderParentID,
@@ -189,7 +221,7 @@ func (lp *LaunchPad) createNewFolderPage(folderPageNumber, groupID, folderPagePa
 
 	item := Item{
 		ID:       groupID,
-		UUID:     newUUID(),
+		UUID:     uuid.New().String(),
 		Flags:    2,
 		Type:     PageType,
 		ParentID: folderPageParentID,
@@ -383,15 +415,4 @@ func (lp *LaunchPad) GetMaxWidgetID() int {
 	}
 
 	return maxID
-}
-
-// newUUID generates a random UUID according to RFC 4122
-func newUUID() string {
-	uuid := make([]byte, 16)
-	_, _ = io.ReadFull(rand.Reader, uuid)
-	// variant bits; see section 4.1.1
-	uuid[8] = uuid[8]&^0xc0 | 0x80
-	// version 4 (pseudo-random); see section 4.1.3
-	uuid[6] = uuid[6]&^0xf0 | 0x40
-	return fmt.Sprintf("%x-%x-%x-%x-%x", uuid[0:4], uuid[4:6], uuid[6:8], uuid[8:10], uuid[10:])
 }
