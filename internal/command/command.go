@@ -512,7 +512,6 @@ func LoadConfig(c *Config) error {
 
 	/////////////////////////////////////////////////////////////////////
 	// Place Apps ///////////////////////////////////////////////////////
-
 	if err := lpad.GetMissing(&config.Apps, database.ApplicationType); err != nil {
 		return fmt.Errorf("failed to GetMissing=>Apps: %v", err)
 	}

@@ -173,7 +173,7 @@ func (lp *LaunchPad) createNewPage(rowID, pageParentID, pageNumber int) error {
 	item := Item{
 		ID:       rowID,
 		UUID:     uuid.New().String(),
-		Flags:    0,
+		Flags:    2,
 		Type:     PageType,
 		ParentID: pageParentID,
 		Ordering: pageNumber,
