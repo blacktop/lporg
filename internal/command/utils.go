@@ -2,8 +2,8 @@ package command
 
 import (
 	"context"
+	"fmt"
 	"os"
-	"os/user"
 	"path/filepath"
 	"time"
 
@@ -70,16 +70,12 @@ var PorgASCIIArt = `
 `
 
 func restartDock() error {
-	ctx := context.Background()
-
 	utils.Indent(log.Info)("restarting Dock")
-	if _, err := utils.RunCommand(ctx, "killall", "Dock"); err != nil {
+	if _, err := utils.RunCommand(context.Background(), "killall", "Dock"); err != nil {
 		return errors.Wrap(err, "killing Dock process failed")
 	}
-
 	// let system settle
-	time.Sleep(5 * time.Second)
-
+	time.Sleep(2 * time.Second)
 	return nil
 }
 
@@ -93,28 +89,24 @@ func removeOldDatabaseFiles(dbpath string) error {
 
 	for _, path := range paths {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			utils.DoubleIndent(log.WithField("path", path).Warn)("file not found")
+			utils.DoubleIndent(log.WithField("path", path).Warn)("DB file not found")
 			continue
 		}
 		if err := os.Remove(path); err != nil {
 			return errors.Wrap(err, "removing file failed")
 		}
-		utils.DoubleIndent(log.WithField("path", path).Info)("removed old file")
-
+		utils.DoubleIndent(log.WithField("path", path).Info)("removed old DB file")
 	}
 
 	return restartDock()
 }
 
 func getiCloudDrivePath() (string, error) {
-
-	// get current user
-	user, err := user.Current()
+	home, err := os.UserHomeDir()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get user home directory: %w", err)
 	}
-
-	return filepath.Join(user.HomeDir, "Library/Mobile Documents/com~apple~CloudDocs"), nil
+	return filepath.Join(home, "Library/Mobile Documents/com~apple~CloudDocs"), nil
 }
 
 func split(buf []string, lim int) [][]string {

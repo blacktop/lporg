@@ -18,6 +18,14 @@ type LaunchPad struct {
 	DB     *gorm.DB
 	File   string
 	Folder string
+
+	rootPage       int
+	missingApps    []string
+	configlessApps []string
+}
+
+func (lp *LaunchPad) Missing() []string {
+	return lp.missingApps
 }
 
 // App CREATE TABLE apps (item_id INTEGER PRIMARY KEY, title VARCHAR, bundleid VARCHAR, storeid VARCHAR,category_id INTEGER, moddate REAL, bookmark BLOB)
@@ -64,6 +72,11 @@ type DBInfo struct {
 	Value string
 }
 
+// TableName set DBInfo's table name to be `dbinfo`
+func (DBInfo) TableName() string {
+	return "dbinfo"
+}
+
 // Widget - CREATE TABLE widgets (item_id INTEGER PRIMARY KEY, title VARCHAR, bundleid VARCHAR, storeid VARCHAR,category_id INTEGER, moddate REAL, bookmark BLOB)
 type Widget struct {
 	ID         int    `gorm:"column:item_id;primary_key"`
@@ -74,9 +87,4 @@ type Widget struct {
 	Category   Category
 	Moddate    float64 `gorm:"column:moddate"`
 	Bookmark   []byte  `gorm:"column:bookmark"`
-}
-
-// TableName set DBInfo's table name to be `dbinfo`
-func (DBInfo) TableName() string {
-	return "dbinfo"
 }
