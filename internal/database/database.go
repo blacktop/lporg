@@ -78,12 +78,14 @@ func (lp *LaunchPad) GetMissing(apps *Apps, appType int) error {
 
 	// check all apps from config file exist on system
 	for idx, page := range apps.Pages {
+		tmp := []any{}
 		for iidx, item := range page.Items {
 			switch item.(type) {
 			case string:
 				if !slices.Contains(lp.dbApps, item.(string)) {
 					utils.DoubleIndent(log.WithField("app", item.(string)).Warn)("found app in config that are is not on system")
-					apps.Pages[idx].Items = append(apps.Pages[idx].Items[:iidx], apps.Pages[idx].Items[iidx+1:]...)
+				} else {
+					tmp = append(tmp, item)
 				}
 			default:
 				var folder AppFolder
@@ -91,18 +93,19 @@ func (lp *LaunchPad) GetMissing(apps *Apps, appType int) error {
 					return fmt.Errorf("mapstructure unable to decode config folder: %w", err)
 				}
 				for fpIdx, fpage := range folder.Pages {
-					tmp := []any{}
+					ftmp := []any{}
 					for _, fitem := range fpage.Items {
 						if !slices.Contains(lp.dbApps, fitem) {
 							utils.DoubleIndent(log.WithField("app", fitem).Warn)("found app in config that are is not on system")
 						} else {
-							tmp = append(tmp, fitem)
+							ftmp = append(ftmp, fitem)
 						}
 					}
-					apps.Pages[idx].Items[iidx].(map[string]any)["pages"].([]any)[fpIdx].(map[string]any)["items"] = tmp
+					apps.Pages[idx].Items[iidx].(map[string]any)["pages"].([]any)[fpIdx].(map[string]any)["items"] = ftmp
 				}
 			}
 		}
+		apps.Pages[idx].Items = tmp
 	}
 
 	return nil
