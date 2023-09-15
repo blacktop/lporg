@@ -70,7 +70,7 @@ var PorgASCIIArt = `
 `
 
 func restartDock() error {
-	utils.Indent(log.Info)("restarting Dock")
+	utils.Indent(log.Info, 2)("restarting Dock")
 	if _, err := utils.RunCommand(context.Background(), "killall", "Dock"); err != nil {
 		return errors.Wrap(err, "killing Dock process failed")
 	}
@@ -89,13 +89,13 @@ func removeOldDatabaseFiles(dbpath string) error {
 
 	for _, path := range paths {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			utils.DoubleIndent(log.WithField("path", path).Warn)("DB file not found")
+			utils.Indent(log.WithField("path", path).Warn, 3)("DB file not found")
 			continue
 		}
 		if err := os.Remove(path); err != nil {
 			return errors.Wrap(err, "removing file failed")
 		}
-		utils.DoubleIndent(log.WithField("path", path).Info)("removed old DB file")
+		utils.Indent(log.WithField("path", path).Info, 3)("removed old DB file")
 	}
 
 	return restartDock()
