@@ -3,6 +3,7 @@ package dock
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -272,7 +273,11 @@ func (p *Plist) Save() error {
 		return fmt.Errorf("failed to backup plist: %w", err)
 	}
 
-	utils.Indent(log.Debug, 3)(fmt.Sprintf("dock plist: %#v", p))
+	jdat, err := p.AsJSON()
+	if err != nil {
+		return fmt.Errorf("failed to marshal plist to json: %w", err)
+	}
+	utils.Indent(log.Debug, 3)(fmt.Sprintf("dock plist: %s", string(jdat)))
 
 	// write dock plist to temp file
 	tmp, err := os.Create("/tmp/dock.plist")
@@ -306,4 +311,8 @@ func (p *Plist) kickstart() error {
 		return fmt.Errorf("failed to kickstart dock: %v", err)
 	}
 	return nil
+}
+
+func (p *Plist) AsJSON() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
 }
