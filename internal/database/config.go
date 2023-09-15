@@ -57,8 +57,8 @@ func (c Config) Verify() error {
 					return fmt.Errorf("mapstructure unable to decode config folder")
 				}
 				if len(folder.Pages) > 0 {
-					if len(folder.Pages[0].Items) < 2 { // verify that all folders contain more than 1 item
-						return fmt.Errorf("folder %s must contain more than 1 item to be valid", folder.Name)
+					if len(folder.Pages[0].Items) == 0 { // verify that all folders contain at least 1 item
+						return fmt.Errorf("folder %s must contain at least 1 item to be valid", folder.Name)
 					}
 				}
 			}
