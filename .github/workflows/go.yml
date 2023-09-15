@@ -27,5 +27,11 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Test
-      run: go run *.go --help
+    - name: Test Default
+      run: go run main.go default --no-backup --yes
+    - name: Test Save
+      run: go run main.go save --config /tmp/lp.yml
+    - name: Test Load
+      run: go run main.go load --config /tmp/lp.yml --no-backup --yes
+    - name: Test Version
+      run: go run main.go version
