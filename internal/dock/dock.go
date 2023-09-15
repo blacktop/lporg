@@ -273,18 +273,18 @@ func (p *Plist) Save() error {
 	}
 
 	// write dock plist to temp file
-	tmp, err := os.CreateTemp("", "dock.plist")
+	tmp, err := os.Create("/tmp/dock.plist")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %v", err)
 	}
-	utils.Indent(log.WithField("plist", tmp.Name()).Info, 3)("writing temp dock plist")
+	utils.Indent(log.WithField("plist", "/tmp/dock.plist").Info, 3)("writing temp dock plist")
 	if err := plist.NewBinaryEncoder(tmp).Encode(p); err != nil {
 		return fmt.Errorf("failed to decode plist: %w", err)
 	}
 	tmp.Close()
 
 	// import plist and restart dock
-	if err := p.importPlist(tmp.Name()); err != nil {
+	if err := p.importPlist("/tmp/dock.plist"); err != nil {
 		return fmt.Errorf("failed to import plist: %w", err)
 	}
 	return p.kickstart()
