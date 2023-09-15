@@ -109,15 +109,18 @@ func getiCloudDrivePath() (string, error) {
 	return filepath.Join(home, "Library/Mobile Documents/com~apple~CloudDocs"), nil
 }
 
-func split(buf []string, lim int) [][]string {
-	var chunk []string
-	chunks := make([][]string, 0, len(buf)/lim+1)
-	for len(buf) >= lim {
-		chunk, buf = buf[:lim], buf[lim:]
-		chunks = append(chunks, chunk)
+func split[T any](buf []T, lim int) [][]T {
+	var chunk []T
+	chunks := make([][]T, 0, lim)
+	for _, b := range buf {
+		chunk = append(chunk, b)
+		if len(chunk) == lim {
+			chunks = append(chunks, chunk)
+			chunk = nil
+		}
 	}
-	if len(buf) > 0 {
-		chunks = append(chunks, buf[:])
+	if len(chunk) > 0 {
+		chunks = append(chunks, chunk)
 	}
 	return chunks
 }

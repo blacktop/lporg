@@ -193,17 +193,17 @@ func DefaultOrg(c *Config) (err error) {
 
 	// Clear all items related to groups so we can re-create them
 	if err := lpad.ClearGroups(); err != nil {
-		return fmt.Errorf("failed to ClearGroups: %w", err)
+		return fmt.Errorf("failed to ClearGroups: %v", err)
 	}
 
 	// Disable the update triggers
 	if err := lpad.DisableTriggers(); err != nil {
-		return fmt.Errorf("failed to DisableTriggers: %w", err)
+		return fmt.Errorf("failed to DisableTriggers: %v", err)
 	}
 
 	// Add root and holding pages to items and groups
 	if err := lpad.AddRootsAndHoldingPages(); err != nil {
-		return fmt.Errorf("failed to AddRootsAndHoldingPagesfailed: %w", err)
+		return fmt.Errorf("failed to AddRootsAndHoldingPagesfailed: %v", err)
 	}
 
 	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
@@ -238,6 +238,21 @@ func DefaultOrg(c *Config) (err error) {
 		folder.Pages = append(folder.Pages, folderPage)
 		page.Items = append(page.Items, folder)
 	}
+	if err := lpad.DB.Where("category_id IS NULL").Find(&apps).Error; err != nil {
+		log.WithError(err).Error("categories query failed")
+	}
+	if len(apps) > 0 {
+		folder := database.AppFolder{Name: "Misc"}
+		for idx, appPage := range split(apps, 35) {
+			folderPage := database.FolderPage{Number: idx + 1}
+			for _, app := range appPage {
+				utils.Indent(log.WithField("app", app.Title).Info, 4)("adding app to Misc folder")
+				folderPage.Items = utils.AppendIfMissing(folderPage.Items, app.Title)
+			}
+			folder.Pages = append(folder.Pages, folderPage)
+		}
+		page.Items = append(page.Items, folder)
+	}
 
 	config.Apps.Pages = append(config.Apps.Pages, page)
 
@@ -259,6 +274,10 @@ func DefaultOrg(c *Config) (err error) {
 	// Place Apps ///////////////////////////////////////////////////////
 	if err := lpad.GetMissing(&config.Apps, database.ApplicationType); err != nil {
 		return fmt.Errorf("failed to GetMissing=>Apps: %v", err)
+	}
+
+	if err := lpad.Config.Verify(); err != nil {
+		return fmt.Errorf("failed to verify conf post removal of missing apps: %v", err)
 	}
 
 	utils.Indent(log.Info, 2)("creating App folders and adding apps to them")
