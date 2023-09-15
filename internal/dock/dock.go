@@ -24,7 +24,7 @@ type Plist struct {
 	PersistentApps              []PAItem `plist:"persistent-apps"`
 	PersistentOthers            []POItem `plist:"persistent-others"`
 	AutoHide                    bool     `plist:"autohide"`
-	LargeSize                   any      `plist:"largesize"`
+	LargeSize                   any      `plist:"largesize,omitempty"`
 	Loc                         string   `plist:"loc"`
 	Magnification               bool     `plist:"magnification"`
 	MinimizeToApplication       bool     `plist:"minimize-to-application"`
@@ -37,7 +37,7 @@ type Plist struct {
 	Region                      string   `plist:"region"`
 	ShowRecents                 bool     `plist:"show-recents"`
 	ShowAppExposeGestureEnabled bool     `plist:"showAppExposeGestureEnabled"`
-	TileSize                    any      `plist:"tilesize"`
+	TileSize                    any      `plist:"tilesize,omitempty"`
 	TrashFull                   bool     `plist:"trash-full"`
 	Version                     int      `plist:"version"`
 	WvousBlCorner               int      `plist:"wvous-bl-corner,omitempty"`
