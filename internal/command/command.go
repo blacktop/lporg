@@ -574,18 +574,18 @@ func LoadConfig(c *Config) (err error) {
 			utils.Indent(log.WithField("app", app).Info, 3)("adding to dock")
 			dPlist.AddApp(app)
 		}
-		if len(dPlist.PersistentOthers) > 0 {
-			dPlist.PersistentOthers = nil // remove all folders from dock
-		}
-		for _, other := range lpad.Config.Dock.Others {
-			utils.Indent(log.WithField("other", other).Info, 3)("adding to dock")
-			dPlist.AddOther(other)
-		}
-		// if lpad.Config.Dock.Settings != nil {
-		// 	if err := dPlist.ApplySettings(*lpad.Config.Dock.Settings); err != nil {
-		// 		return fmt.Errorf("failed to apply dock settings: %w", err)
-		// 	}
+		// if len(dPlist.PersistentOthers) > 0 {
+		// 	dPlist.PersistentOthers = nil // remove all folders from dock
 		// }
+		// for _, other := range lpad.Config.Dock.Others {
+		// 	utils.Indent(log.WithField("other", other).Info, 3)("adding to dock")
+		// 	dPlist.AddOther(other)
+		// }
+		if lpad.Config.Dock.Settings != nil {
+			if err := dPlist.ApplySettings(*lpad.Config.Dock.Settings); err != nil {
+				return fmt.Errorf("failed to apply dock settings: %w", err)
+			}
+		}
 		if err := dPlist.Save(); err != nil {
 			return fmt.Errorf("failed to save dock plist: %w", err)
 		}

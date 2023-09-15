@@ -272,6 +272,8 @@ func (p *Plist) Save() error {
 		return fmt.Errorf("failed to backup plist: %w", err)
 	}
 
+	utils.Indent(log.Debug, 3)(fmt.Sprintf("dock plist: %#v", p))
+
 	// write dock plist to temp file
 	tmp, err := os.Create("/tmp/dock.plist")
 	if err != nil {
