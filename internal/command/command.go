@@ -581,11 +581,11 @@ func LoadConfig(c *Config) (err error) {
 			utils.Indent(log.WithField("other", other).Info, 3)("adding to dock")
 			dPlist.AddOther(other)
 		}
-		if lpad.Config.Dock.Settings != nil {
-			if err := dPlist.ApplySettings(*lpad.Config.Dock.Settings); err != nil {
-				return fmt.Errorf("failed to apply dock settings: %w", err)
-			}
-		}
+		// if lpad.Config.Dock.Settings != nil {
+		// 	if err := dPlist.ApplySettings(*lpad.Config.Dock.Settings); err != nil {
+		// 		return fmt.Errorf("failed to apply dock settings: %w", err)
+		// 	}
+		// }
 		if err := dPlist.Save(); err != nil {
 			return fmt.Errorf("failed to save dock plist: %w", err)
 		}
