@@ -106,14 +106,14 @@ func parsePages(root int, parentMapping map[int][]database.Item) (database.Apps,
 		for _, item := range parentMapping[page.ID] {
 			switch item.Type {
 			case database.ApplicationType:
-				utils.Indent(log.WithField("title", item.App.Title).Info)("found app")
+				utils.Indent(log.WithField("title", item.App.Title).Info, 2)("found app")
 				p.Items = append(p.Items, item.App.Title)
 			// case database.WidgetType:
 			// 	utils.Indent(log.WithField("title", item.Widget.Title).Info)("found widget")
 			// 	p.Items = append(p.Items, item.Widget.Title)
 			case database.FolderRootType:
 
-				utils.Indent(log.WithField("title", item.Group.Title).Info)("found folder")
+				utils.Indent(log.WithField("title", item.Group.Title).Info, 2)("found folder")
 
 				f := database.AppFolder{Name: item.Group.Title}
 
@@ -122,12 +122,12 @@ func parsePages(root int, parentMapping map[int][]database.Item) (database.Apps,
 				}
 
 				for fpIndex, fpage := range parentMapping[item.ID] {
-					utils.DoubleIndent(log.WithField("number", fpIndex+1).Info)("found folder page")
+					utils.Indent(log.WithField("number", fpIndex+1).Info, 3)("found folder page")
 
 					fp := database.FolderPage{Number: fpIndex + 1}
 
 					for _, folder := range parentMapping[fpage.ID] {
-						utils.TripleIndent(log.WithField("title", folder.App.Title).Info)("found app")
+						utils.Indent(log.WithField("title", folder.App.Title).Info, 4)("found app")
 						fp.Items = append(fp.Items, folder.App.Title)
 					}
 
@@ -137,13 +137,13 @@ func parsePages(root int, parentMapping map[int][]database.Item) (database.Apps,
 				if len(f.Pages) > 0 && len(f.Pages[0].Items) > 0 {
 					p.Items = append(p.Items, f)
 				} else {
-					utils.DoubleIndent(log.WithField("folder", item.Group.Title).Error)("empty folder")
+					utils.Indent(log.WithField("folder", item.Group.Title).Error, 3)("empty folder")
 				}
 
 			case database.PageType:
-				utils.Indent(log.WithField("parent_id", item.ParentID).Info)("found page")
+				utils.Indent(log.WithField("parent_id", item.ParentID).Info, 2)("found page")
 			default:
-				utils.Indent(log.WithField("type", item.Type).Error)("found ?")
+				utils.Indent(log.WithField("type", item.Type).Error, 2)("found ?")
 			}
 		}
 		apps.Pages = append(apps.Pages, p)
@@ -163,9 +163,9 @@ func DefaultOrg(c *Config) (err error) {
 	lpad.File = filepath.Join(lpad.Folder, "db")
 	// lpad.File = "./launchpad.db"
 	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
-		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal)("launchpad DB not found")
+		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal, 2)("launchpad DB not found")
 	}
-	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
+	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info, 2)("found launchpad database")
 
 	// start from a clean slate
 	err = removeOldDatabaseFiles(lpad.Folder)
@@ -193,24 +193,24 @@ func DefaultOrg(c *Config) (err error) {
 
 	// Clear all items related to groups so we can re-create them
 	if err := lpad.ClearGroups(); err != nil {
-		return fmt.Errorf("failed to ClearGroups: %w", err)
+		return fmt.Errorf("failed to ClearGroups: %v", err)
 	}
 
 	// Disable the update triggers
 	if err := lpad.DisableTriggers(); err != nil {
-		return fmt.Errorf("failed to DisableTriggers: %w", err)
+		return fmt.Errorf("failed to DisableTriggers: %v", err)
 	}
 
 	// Add root and holding pages to items and groups
 	if err := lpad.AddRootsAndHoldingPages(); err != nil {
-		return fmt.Errorf("failed to AddRootsAndHoldingPagesfailed: %w", err)
+		return fmt.Errorf("failed to AddRootsAndHoldingPagesfailed: %v", err)
 	}
 
 	// We will begin our group records using the max ids found (groups always appear after apps and widgets)
 	// groupID := int(math.Max(float64(lpad.GetMaxAppID()), float64(lpad.GetMaxWidgetID())))
 	groupID := int(float64(lpad.GetMaxAppID())) // widgets are no longer supported
 
-	utils.Indent(log.Info)("creating folders out of app categories")
+	utils.Indent(log.Info, 2)("creating folders out of app categories")
 
 	// Create default config file
 	var apps []database.App
@@ -227,15 +227,30 @@ func DefaultOrg(c *Config) (err error) {
 		folderName := strings.Title(strings.Replace(strings.TrimPrefix(category.UTI, "public.app-category."), "-", " ", 1))
 		folder := database.AppFolder{Name: folderName}
 		folderPage := database.FolderPage{Number: 1}
-		utils.DoubleIndent(log.WithField("folder", folderName).Info)("adding folder")
+		utils.Indent(log.WithField("folder", folderName).Info, 3)("adding folder")
 		if err := lpad.DB.Where("category_id = ?", category.ID).Find(&apps).Error; err != nil {
 			log.WithError(err).Error("categories query failed")
 		}
 		for _, app := range apps {
-			utils.TripleIndent(log.WithField("app", app.Title).Info)("adding app to category folder")
+			utils.Indent(log.WithField("app", app.Title).Info, 4)("adding app to category folder")
 			folderPage.Items = utils.AppendIfMissing(folderPage.Items, app.Title)
 		}
 		folder.Pages = append(folder.Pages, folderPage)
+		page.Items = append(page.Items, folder)
+	}
+	if err := lpad.DB.Where("category_id IS NULL").Find(&apps).Error; err != nil {
+		log.WithError(err).Error("categories query failed")
+	}
+	if len(apps) > 0 {
+		folder := database.AppFolder{Name: "Misc"}
+		for idx, appPage := range split(apps, 35) {
+			folderPage := database.FolderPage{Number: idx + 1}
+			for _, app := range appPage {
+				utils.Indent(log.WithField("app", app.Title).Info, 4)("adding app to Misc folder")
+				folderPage.Items = utils.AppendIfMissing(folderPage.Items, app.Title)
+			}
+			folder.Pages = append(folder.Pages, folderPage)
+		}
 		page.Items = append(page.Items, folder)
 	}
 
@@ -261,7 +276,11 @@ func DefaultOrg(c *Config) (err error) {
 		return fmt.Errorf("failed to GetMissing=>Apps: %v", err)
 	}
 
-	utils.Indent(log.Info)("creating App folders and adding apps to them")
+	if err := lpad.Config.Verify(); err != nil {
+		return fmt.Errorf("failed to verify conf post removal of missing apps: %v", err)
+	}
+
+	utils.Indent(log.Info, 2)("creating App folders and adding apps to them")
 	if err := lpad.ApplyConfig(config.Apps, groupID, 1); err != nil {
 		return fmt.Errorf("failed to DefaultOrg->ApplyConfig: %w", err)
 	}
@@ -298,9 +317,9 @@ func SaveConfig(c *Config) (err error) {
 	lpad.File = filepath.Join(lpad.Folder, "db")
 	// lpad.File = "./launchpad.db"
 	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
-		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal)("launchpad DB not found")
+		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal, 2)("launchpad DB not found")
 	}
-	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
+	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info, 2)("found launchpad database")
 
 	// open launchpad database
 	lpad.DB, err = gorm.Open(sqlite.Open(lpad.File), &gorm.Config{
@@ -449,9 +468,9 @@ func LoadConfig(c *Config) (err error) {
 	lpad.File = filepath.Join(lpad.Folder, "db")
 	// lpad.File = "./launchpad-test.db"
 	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
-		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal)("launchpad DB not found")
+		utils.Indent(log.WithError(err).WithField("path", lpad.File).Fatal, 2)("launchpad DB not found")
 	}
-	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info)("found launchpad database")
+	utils.Indent(log.WithFields(log.Fields{"database": lpad.File}).Info, 2)("found launchpad database")
 
 	// start from a clean slate
 	err = removeOldDatabaseFiles(lpad.Folder)
@@ -516,7 +535,11 @@ func LoadConfig(c *Config) (err error) {
 		return fmt.Errorf("failed to GetMissing=>Apps: %v", err)
 	}
 
-	utils.Indent(log.Info)("creating App folders and adding apps to them")
+	if err := lpad.Config.Verify(); err != nil {
+		return fmt.Errorf("failed to verify conf post removal of missing apps: %v", err)
+	}
+
+	utils.Indent(log.Info, 2)("creating App folders and adding apps to them")
 	if err := lpad.ApplyConfig(lpad.Config.Apps, groupID, 1); err != nil {
 		return fmt.Errorf("failed to LoadConfig->ApplyConfig: %w", err)
 	}
@@ -535,12 +558,12 @@ func LoadConfig(c *Config) (err error) {
 	}
 
 	if len(lpad.Config.Desktop.Image) > 0 {
-		utils.Indent(log.WithField("image", lpad.Config.Desktop.Image).Info)("setting desktop background image")
+		utils.Indent(log.WithField("image", lpad.Config.Desktop.Image).Info, 2)("setting desktop background image")
 		desktop.SetDesktopImage(lpad.Config.Desktop.Image)
 	}
 
 	if len(lpad.Config.Dock.Apps) > 0 || len(lpad.Config.Dock.Others) > 0 {
-		utils.Indent(log.Info)("setting dock apps")
+		utils.Indent(log.Info, 2)("setting dock apps")
 		dPlist, err := dock.LoadDockPlist()
 		if err != nil {
 			return errors.Wrap(err, "unable to load dock plist")
@@ -549,14 +572,14 @@ func LoadConfig(c *Config) (err error) {
 			dPlist.PersistentApps = nil // remove all apps from dock
 		}
 		for _, app := range lpad.Config.Dock.Apps {
-			utils.DoubleIndent(log.WithField("app", app).Info)("adding to dock")
+			utils.Indent(log.WithField("app", app).Info, 3)("adding to dock")
 			dPlist.AddApp(app)
 		}
 		if len(dPlist.PersistentOthers) > 0 {
 			dPlist.PersistentOthers = nil // remove all folders from dock
 		}
 		for _, other := range lpad.Config.Dock.Others {
-			utils.DoubleIndent(log.WithField("other", other).Info)("adding to dock")
+			utils.Indent(log.WithField("other", other).Info, 3)("adding to dock")
 			dPlist.AddOther(other)
 		}
 		if lpad.Config.Dock.Settings != nil {

@@ -3,6 +3,7 @@ package dock
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -23,7 +24,7 @@ type Plist struct {
 	PersistentApps              []PAItem `plist:"persistent-apps"`
 	PersistentOthers            []POItem `plist:"persistent-others"`
 	AutoHide                    bool     `plist:"autohide"`
-	LargeSize                   any      `plist:"largesize"`
+	LargeSize                   any      `plist:"largesize,omitempty"`
 	Loc                         string   `plist:"loc"`
 	Magnification               bool     `plist:"magnification"`
 	MinimizeToApplication       bool     `plist:"minimize-to-application"`
@@ -37,7 +38,7 @@ type Plist struct {
 	ShowRecents                 bool     `plist:"show-recents"`
 	ShowAppExposeGestureEnabled bool     `plist:"showAppExposeGestureEnabled"`
 	SizeImmutable               bool     `plist:"size-immutable"`
-	TileSize                    any      `plist:"tilesize"`
+	TileSize                    any      `plist:"tilesize,omitempty"`
 	TrashFull                   bool     `plist:"trash-full"`
 	Version                     int      `plist:"version"`
 	WvousBlCorner               int      `plist:"wvous-bl-corner,omitempty"`
@@ -279,7 +280,9 @@ func (p *Plist) Save() error {
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %v", err)
 	}
-	utils.DoubleIndent(log.WithField("plist", tmp.Name()).Info)("writing temp dock plist")
+	defer os.Remove(tmp.Name())
+
+	utils.Indent(log.WithField("plist", tmp.Name()).Info, 3)("writing temp dock plist")
 	if err := plist.NewBinaryEncoder(tmp).Encode(p); err != nil {
 		return fmt.Errorf("failed to decode plist: %w", err)
 	}
@@ -293,7 +296,7 @@ func (p *Plist) Save() error {
 }
 
 func (p *Plist) importPlist(path string) error {
-	utils.DoubleIndent(log.Info)("importing dock plist")
+	utils.Indent(log.Info, 3)("importing dock plist")
 	if _, err := utils.RunCommand(context.Background(), "/usr/bin/defaults", "import", "com.apple.dock", path); err != nil {
 		return fmt.Errorf("failed to defaults import dock plist '%s': %v", path, err)
 	}
@@ -301,9 +304,13 @@ func (p *Plist) importPlist(path string) error {
 }
 
 func (p *Plist) kickstart() error {
-	utils.DoubleIndent(log.Info)("restarting com.apple.Dock.agent service")
+	utils.Indent(log.Info, 3)("restarting com.apple.Dock.agent service")
 	if _, err := utils.RunCommand(context.Background(), "/bin/launchctl", "kickstart", "-k", fmt.Sprintf("gui/%d/com.apple.Dock.agent", os.Getuid())); err != nil {
 		return fmt.Errorf("failed to kickstart dock: %v", err)
 	}
 	return nil
+}
+
+func (p *Plist) AsJSON() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
 }

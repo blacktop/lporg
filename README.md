@@ -23,7 +23,7 @@ This project is meant to help people setting up a brand new Mac **or** to keep a
 - `macOS 10.12` _(Sierra)_
 - `macOS 10.13.2` _(High Sierra)_
 - `macOS 10.13.3` _(High Sierra)_
-- `macOS 14beta7` _(Sonoma)_
+- `macOS 14.0` _(Sonoma)_
 
 ## Install
 
@@ -101,10 +101,6 @@ Revert a launchpad app layout to the backed up version stored at `$CONFIG/lporg/
 - [ ] create Brewfile from unfound apps IF they are installable via brew?
 - [ ] add ability to save/load private gist configs
 - [ ] add ability to have desktop image be a URL and it will download and check sha256, save in `.lporg` folder and add to desktop
-
-## Known Issue
-
-If `lporg` creates a launchpad folder with only 1 app in it, then when you reboot Apple will remove ALL the folders due to it not supporting single app folders and it believing that it is in a broken state.
 
 ## Issues
 
