@@ -44,6 +44,29 @@ func (c Config) GetFolderContainingApp(app string) (string, error) {
 	return "", fmt.Errorf("unable to find folder containing app %s", app)
 }
 
+// Verify that the config is valid
+func (c Config) Verify() error {
+	for _, page := range c.Apps.Pages {
+		for _, item := range page.Items {
+			switch item.(type) {
+			case string:
+				continue
+			default:
+				var folder AppFolder
+				if err := mapstructure.Decode(item, &folder); err != nil {
+					return fmt.Errorf("mapstructure unable to decode config folder")
+				}
+				if len(folder.Pages) > 0 {
+					if len(folder.Pages[0].Items) == 0 { // verify that all folders contain at least 1 item
+						return fmt.Errorf("folder %s must contain at least 1 item to be valid", folder.Name)
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // Apps is the launchpad apps config object
 type Apps struct {
 	Pages []Page `yaml:"pages" json:"pages,omitempty"`
@@ -130,37 +153,21 @@ type Dock struct {
 func LoadConfig(filename string) (Config, error) {
 	var conf Config
 
-	utils.Indent(log.WithField("path", filename).Info)("parsing launchpad config YAML")
+	utils.Indent(log.WithField("path", filename).Info, 2)("parsing launchpad config YAML")
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		utils.DoubleIndent(log.WithError(err).WithField("path", filename).Fatal)("config file not found")
+		utils.Indent(log.WithError(err).WithField("path", filename).Fatal, 3)("config file not found")
 		return conf, err
 	}
 
 	err = yaml.Unmarshal(data, &conf)
 	if err != nil {
-		utils.DoubleIndent(log.WithError(err).WithField("path", filename).Fatal)("unmarshalling yaml failed")
+		utils.Indent(log.WithError(err).WithField("path", filename).Fatal, 3)("unmarshalling yaml failed")
 		return conf, err
 	}
 
-	// verify that all folders contain more than 1 item
-	for _, page := range conf.Apps.Pages {
-		for _, item := range page.Items {
-			switch item.(type) {
-			case string:
-				continue
-			default:
-				var folder AppFolder
-				if err := mapstructure.Decode(item, &folder); err != nil {
-					return Config{}, errors.Wrap(err, "mapstructure unable to decode config folder")
-				}
-				if len(folder.Pages) > 0 {
-					if len(folder.Pages[0].Items) < 2 {
-						return Config{}, fmt.Errorf("folder %s must contain more than 1 item to be valid", folder.Name)
-					}
-				}
-			}
-		}
+	if err := conf.Verify(); err != nil {
+		return conf, fmt.Errorf("config verification failed: %v", err)
 	}
 
 	return conf, nil

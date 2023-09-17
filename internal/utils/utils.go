@@ -10,34 +10,13 @@ import (
 )
 
 var (
-	normalPadding    = cli.Default.Padding
-	doublePadding    = normalPadding * 2
-	triplePadding    = normalPadding * 3
-	quadruplePadding = normalPadding * 4
+	normalPadding = cli.Default.Padding
 )
 
-// Indent indents apex log line
-func Indent(f func(s string)) func(string) {
+// Indent indents apex log line to supplied level
+func Indent(f func(s string), level int) func(string) {
 	return func(s string) {
-		cli.Default.Padding = doublePadding
-		f(s)
-		cli.Default.Padding = normalPadding
-	}
-}
-
-// DoubleIndent double indents apex log line
-func DoubleIndent(f func(s string)) func(string) {
-	return func(s string) {
-		cli.Default.Padding = triplePadding
-		f(s)
-		cli.Default.Padding = normalPadding
-	}
-}
-
-// TripleIndent triple indents apex log line
-func TripleIndent(f func(s string)) func(string) {
-	return func(s string) {
-		cli.Default.Padding = quadruplePadding
+		cli.Default.Padding = normalPadding * level
 		f(s)
 		cli.Default.Padding = normalPadding
 	}

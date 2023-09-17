@@ -70,7 +70,7 @@ var PorgASCIIArt = `
 `
 
 func restartDock() error {
-	utils.Indent(log.Info)("restarting Dock")
+	utils.Indent(log.Info, 2)("restarting Dock")
 	if _, err := utils.RunCommand(context.Background(), "killall", "Dock"); err != nil {
 		return errors.Wrap(err, "killing Dock process failed")
 	}
@@ -89,13 +89,13 @@ func removeOldDatabaseFiles(dbpath string) error {
 
 	for _, path := range paths {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			utils.DoubleIndent(log.WithField("path", path).Warn)("DB file not found")
+			utils.Indent(log.WithField("path", path).Warn, 3)("DB file not found")
 			continue
 		}
 		if err := os.Remove(path); err != nil {
 			return errors.Wrap(err, "removing file failed")
 		}
-		utils.DoubleIndent(log.WithField("path", path).Info)("removed old DB file")
+		utils.Indent(log.WithField("path", path).Info, 3)("removed old DB file")
 	}
 
 	return restartDock()
@@ -109,15 +109,18 @@ func getiCloudDrivePath() (string, error) {
 	return filepath.Join(home, "Library/Mobile Documents/com~apple~CloudDocs"), nil
 }
 
-func split(buf []string, lim int) [][]string {
-	var chunk []string
-	chunks := make([][]string, 0, len(buf)/lim+1)
-	for len(buf) >= lim {
-		chunk, buf = buf[:lim], buf[lim:]
-		chunks = append(chunks, chunk)
+func split[T any](buf []T, lim int) [][]T {
+	var chunk []T
+	chunks := make([][]T, 0, lim)
+	for _, b := range buf {
+		chunk = append(chunk, b)
+		if len(chunk) == lim {
+			chunks = append(chunks, chunk)
+			chunk = nil
+		}
 	}
-	if len(buf) > 0 {
-		chunks = append(chunks, buf[:])
+	if len(chunk) > 0 {
+		chunks = append(chunks, chunk)
 	}
 	return chunks
 }
