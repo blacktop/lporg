@@ -290,7 +290,7 @@ func (p *Plist) Save() error {
 	if err := p.importPlist(tmp.Name()); err != nil {
 		return fmt.Errorf("failed to import plist: %w", err)
 	}
-	return p.kickstart()
+	return p.killall()
 }
 
 func (p *Plist) importPlist(path string) error {
@@ -305,6 +305,14 @@ func (p *Plist) kickstart() error {
 	utils.Indent(log.Info, 3)("restarting com.apple.Dock.agent service")
 	if _, err := utils.RunCommand(context.Background(), "/bin/launchctl", "kickstart", "-k", fmt.Sprintf("gui/%d/com.apple.Dock.agent", os.Getuid())); err != nil {
 		return fmt.Errorf("failed to kickstart dock: %v", err)
+	}
+	return nil
+}
+
+func (p *Plist) killall() error {
+	utils.Indent(log.Info, 3)("killing Dock")
+	if _, err := utils.RunCommand(context.Background(), "/usr/bin/killall", "Dock"); err != nil {
+		return fmt.Errorf("failed to kill Dock: %v", err)
 	}
 	return nil
 }
