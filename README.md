@@ -28,7 +28,7 @@ This project is meant to help people setting up a brand new Mac **or** to keep a
 ## Install
 
 ```sh
-$ brew install blacktop/tap/lporg
+brew install blacktop/tap/lporg
 ```
 
 ## Getting Started
@@ -63,7 +63,7 @@ Use "lporg [command] --help" for more information about a command.
 ### Default
 
 ```sh
-$ lporg default
+lporg default
 ```
 
 Organize your launchpad apps using the default Apple app categories as folders
@@ -71,7 +71,7 @@ Organize your launchpad apps using the default Apple app categories as folders
 ### Save
 
 ```sh
-$ lporg save
+lporg save
 ```
 
 Save your current launchpad app layout to a `lporg.yml` file
@@ -79,7 +79,7 @@ Save your current launchpad app layout to a `lporg.yml` file
 ### Load
 
 ```sh
-$ lporg load lporg.yml
+lporg load lporg.yml
 ```
 
 Load a launchpad app layout from a YAML config file
@@ -87,7 +87,7 @@ Load a launchpad app layout from a YAML config file
 ### Revert
 
 ```sh
-$ lporg revert
+lporg revert
 ```
 
 Revert a launchpad app layout to the backed up version stored at `$CONFIG/lporg/config.yml`
