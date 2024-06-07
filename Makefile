@@ -32,7 +32,7 @@ build: ## Build a beta version of malice
 .PHONY: dry_release
 dry_release: ## Run goreleaser without releasing/pushing artifacts to github
 	@echo " > Creating Pre-release Build ${NEXT_VERSION}"
-	@goreleaser build --skip-validate --id darwin --clean --single-target --output dist/lporg
+	@goreleaser build --id darwin --clean --timeout 60m --snapshot --single-target --output dist/lporg
 
 .PHONY: snapshot
 snapshot: ## Run goreleaser snapshot

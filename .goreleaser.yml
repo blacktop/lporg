@@ -1,11 +1,15 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=jcroql
+version: 2
+
 before:
   hooks:
     - go mod tidy
     - go generate ./...
-    - ./.hack/make/completions    
+    - ./.hack/make/completions
 builds:
   - id: darwin
-    binary: lporg  
+    binary: lporg
     goos:
       - darwin
     goarch:
@@ -56,15 +60,15 @@ brews:
   - repository:
       owner: blacktop
       name: homebrew-tap
-    folder: Formula
+    directory: Formula
     homepage: "https://github.com/blacktop/lporg"
     description: Organize Your macOS Launchpad Apps
-    license: MIT    
+    license: MIT
     install: |
       bin.install "lporg"
       bash_completion.install "completions/_bash" => "lporg"
       zsh_completion.install "completions/_zsh" => "_lporg"
-      fish_completion.install "completions/_fish" => "lporg.fish"      
+      fish_completion.install "completions/_fish" => "lporg.fish"
     test: |
       system "#{bin}/lporg --version"
 
