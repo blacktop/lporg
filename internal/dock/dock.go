@@ -17,7 +17,11 @@ import (
 	"howett.net/plist"
 )
 
-const dockPlistPath = "/Library/Preferences/com.apple.dock.plist"
+const (
+	dockPlistPath       = "/Library/Preferences/com.apple.dock.plist"
+	dockLaunchAgentID   = "com.apple.Dock.agent"
+	dockLaunchAgentPath = "/System/Library/LaunchAgents/com.apple.Dock.agent.plist"
+)
 
 // Plist is a dock plist object
 type Plist struct {
@@ -254,6 +258,9 @@ func (p *Plist) Save() error {
 
 	p.ModCount++
 
+	if err := p.unload(); err != nil {
+		return fmt.Errorf("dock save: %w", err)
+	}
 	// backup previous plist
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -290,7 +297,7 @@ func (p *Plist) Save() error {
 	if err := p.importPlist(tmp.Name()); err != nil {
 		return fmt.Errorf("failed to import plist: %w", err)
 	}
-	return p.killall()
+	return p.restart()
 }
 
 func (p *Plist) importPlist(path string) error {
@@ -313,6 +320,25 @@ func (p *Plist) killall() error {
 	utils.Indent(log.Info, 3)("killing Dock")
 	if _, err := utils.RunCommand(context.Background(), "/usr/bin/killall", "Dock"); err != nil {
 		return fmt.Errorf("failed to kill Dock: %v", err)
+	}
+	return nil
+}
+
+func (p *Plist) unload() error {
+	utils.Indent(log.Info, 3)("unloading Dock launch agent")
+	if _, err := utils.RunCommand(context.Background(), "/bin/launchctl", "unload", dockLaunchAgentPath); err != nil {
+		return fmt.Errorf("failed to unload Dock launch agent: %v", err)
+	}
+	return nil
+}
+
+func (p *Plist) restart() error {
+	utils.Indent(log.Info, 3)("restart Dock launch agent")
+	if _, err := utils.RunCommand(context.Background(), "/bin/launchctl", "load", dockLaunchAgentPath); err != nil {
+		return fmt.Errorf("failed to load Dock launch agent: %v", err)
+	}
+	if _, err := utils.RunCommand(context.Background(), "/bin/launchctl", "start", dockLaunchAgentID); err != nil {
+		return fmt.Errorf("failed to start Dock launch agent: %v", err)
 	}
 	return nil
 }
