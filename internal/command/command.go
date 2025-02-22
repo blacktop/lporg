@@ -162,7 +162,7 @@ func DefaultOrg(c *Config) (err error) {
 	cmd := exec.Command("getconf", "DARWIN_USER_DIR")
 	userDir, err := cmd.Output()
 	if err != nil {
-		return
+		return err
 	}
 	lpad.Folder = filepath.Join(strings.TrimRight(string(userDir), "\r\n"), "com.apple.dock.launchpad/db")
 	lpad.File = filepath.Join(lpad.Folder, "db")
@@ -320,7 +320,7 @@ func SaveConfig(c *Config) (err error) {
 	cmd := exec.Command("getconf", "DARWIN_USER_DIR")
 	userDir, err := cmd.Output()
 	if err != nil {
-		return
+		return err
 	}
 	lpad.Folder = filepath.Join(strings.TrimRight(string(userDir), "\r\n"), "com.apple.dock.launchpad/db")
 	lpad.File = filepath.Join(lpad.Folder, "db")
@@ -474,7 +474,7 @@ func LoadConfig(c *Config) (err error) {
 	cmd := exec.Command("getconf", "DARWIN_USER_DIR")
 	userDir, err := cmd.Output()
 	if err != nil {
-		return
+		return err
 	}
 	lpad.Folder = filepath.Join(strings.TrimRight(string(userDir), "\r\n"), "com.apple.dock.launchpad/db")
 	lpad.File = filepath.Join(lpad.Folder, "db")
