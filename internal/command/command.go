@@ -4,6 +4,7 @@ package command
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -158,8 +159,12 @@ func DefaultOrg(c *Config) (err error) {
 	log.Infof(bold, "USING DEFAULT LAUNCHPAD ORGANIZATION")
 
 	// find launchpad database
-	tmpDir := os.Getenv("TMPDIR")
-	lpad.Folder = filepath.Join(tmpDir, "../0/com.apple.dock.launchpad/db")
+	cmd := exec.Command("getconf", "DARWIN_USER_DIR")
+	userDir, err := cmd.Output()
+	if err != nil {
+		return
+	}
+	lpad.Folder = filepath.Join(strings.TrimRight(string(userDir), "\r\n"), "com.apple.dock.launchpad/db")
 	lpad.File = filepath.Join(lpad.Folder, "db")
 	// lpad.File = "./launchpad.db"
 	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
@@ -312,8 +317,12 @@ func SaveConfig(c *Config) (err error) {
 	}
 
 	// find launchpad database
-	tmpDir := os.Getenv("TMPDIR")
-	lpad.Folder = filepath.Join(tmpDir, "../0/com.apple.dock.launchpad/db")
+	cmd := exec.Command("getconf", "DARWIN_USER_DIR")
+	userDir, err := cmd.Output()
+	if err != nil {
+		return
+	}
+	lpad.Folder = filepath.Join(strings.TrimRight(string(userDir), "\r\n"), "com.apple.dock.launchpad/db")
 	lpad.File = filepath.Join(lpad.Folder, "db")
 	// lpad.File = "./launchpad.db"
 	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
@@ -462,8 +471,12 @@ func LoadConfig(c *Config) (err error) {
 	// $TMPDIR../0/com.apple.dock.launchpad/db/db
 
 	// find launchpad database
-	tmpDir := os.Getenv("TMPDIR")
-	lpad.Folder = filepath.Join(tmpDir, "../0/com.apple.dock.launchpad/db")
+	cmd := exec.Command("getconf", "DARWIN_USER_DIR")
+	userDir, err := cmd.Output()
+	if err != nil {
+		return
+	}
+	lpad.Folder = filepath.Join(strings.TrimRight(string(userDir), "\r\n"), "com.apple.dock.launchpad/db")
 	lpad.File = filepath.Join(lpad.Folder, "db")
 	// lpad.File = "./launchpad-test.db"
 	if _, err := os.Stat(lpad.File); os.IsNotExist(err) {
