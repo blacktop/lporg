@@ -14,7 +14,7 @@ require (
 	github.com/spf13/cobra v1.9.1
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 	gopkg.in/yaml.v3 v3.0.1
-	gorm.io/gorm v1.26.0
+	gorm.io/gorm v1.30.1
 	howett.net/plist v1.0.1
 )
 
