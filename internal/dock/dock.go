@@ -41,6 +41,7 @@ type Plist struct {
 	Region                      string   `plist:"region"`
 	ShowRecents                 bool     `plist:"show-recents"`
 	ShowAppExposeGestureEnabled bool     `plist:"showAppExposeGestureEnabled"`
+	SizeImmutable               bool     `plist:"size-immutable"`
 	TileSize                    any      `plist:"tilesize,omitempty"`
 	TrashFull                   bool     `plist:"trash-full"`
 	Version                     int      `plist:"version"`
@@ -230,6 +231,7 @@ func (p *Plist) ApplySettings(setting database.DockSettings) error {
 	p.MinimizeToApplication = setting.MinimizeToApplication
 	p.MruSpaces = setting.MruSpaces
 	p.ShowRecents = setting.ShowRecents
+	p.SizeImmutable = setting.SizeImmutable
 	switch v := setting.LargeSize.(type) {
 	case float64:
 		if v < 16 && v > 128 {

@@ -137,6 +137,7 @@ type DockSettings struct {
 	MinimizeToApplication bool `yaml:"minimize-to-application" json:"minimize-to-application,omitempty"`
 	MruSpaces             bool `yaml:"mru-spaces" json:"mru-spaces,omitempty"`
 	ShowRecents           bool `yaml:"show-recents" json:"show-recents,omitempty"`
+	SizeImmutable         bool `yaml:"size-immutable" json:"size-immutable,omitempty"`
 	TileSize              any  `yaml:"tilesize" json:"tilesize,omitempty"`
 }
 

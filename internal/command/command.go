@@ -411,6 +411,7 @@ func SaveConfig(c *Config) (err error) {
 		MinimizeToApplication: dPlist.MinimizeToApplication,
 		MruSpaces:             dPlist.MruSpaces,
 		ShowRecents:           dPlist.ShowRecents,
+		SizeImmutable:         dPlist.SizeImmutable,
 		TileSize:              dPlist.TileSize,
 	}
 
