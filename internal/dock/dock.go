@@ -41,6 +41,8 @@ type Plist struct {
 	Region                      string   `plist:"region"`
 	ShowRecents                 bool     `plist:"show-recents"`
 	ShowAppExposeGestureEnabled bool     `plist:"showAppExposeGestureEnabled"`
+	SpringboardColumns          int      `plist:"springboard-columns,omitempty"`
+	SpringboardRows             int      `plist:"springboard-rows,omitempty"`
 	TileSize                    any      `plist:"tilesize,omitempty"`
 	TrashFull                   bool     `plist:"trash-full"`
 	Version                     int      `plist:"version"`
@@ -239,6 +241,12 @@ func (p *Plist) ApplySettings(setting database.DockSettings) error {
 		if v < 16 && v > 128 {
 			return fmt.Errorf("large size must be between 16 and 128: %d", setting.LargeSize)
 		}
+	}
+	if v := setting.SpringboardColumns; v > 0 {
+		p.SpringboardColumns = setting.SpringboardColumns
+	}
+	if v := setting.SpringboardRows; v > 0 {
+		p.SpringboardRows = setting.SpringboardRows
 	}
 	switch v := setting.TileSize.(type) {
 	case float64:
