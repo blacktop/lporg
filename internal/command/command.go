@@ -548,9 +548,9 @@ func LoadConfig(c *Config) (err error) {
 		return fmt.Errorf("failed to EnableTriggers: %v", err)
 	}
 
-	if err := restartDock(); err != nil {
-		return fmt.Errorf("failed to restart dock: %w", err)
-	}
+	// if err := restartDock(); err != nil {
+	// 	return fmt.Errorf("failed to restart dock: %w", err)
+	// }
 
 	if err := lpad.FixOther(); err != nil {
 		return fmt.Errorf("failed to fix Other folder: %w", err)
